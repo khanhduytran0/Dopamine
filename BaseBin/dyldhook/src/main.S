@@ -75,6 +75,10 @@ MAKE_TRAMPOLINE(fcntl)
 MAKE_TRAMPOLINE(mmap)
 MAKE_TRAMPOLINE(_simple_getenv)
 MAKE_TRAMPOLINE_ALIAS(mig_get_reply_port, dyld_mig_get_reply_port)
+MAKE_TRAMPOLINE(_kernelrpc_mach_port_allocate_trap)
+MAKE_TRAMPOLINE(_kernelrpc_mach_port_deallocate_trap)
+MAKE_TRAMPOLINE(_kernelrpc_mach_port_insert_right_trap)
+MAKE_TRAMPOLINE(_ZNK5dyld39MachOFile19isBuiltForSimulatorEv)
 
 #if IOS>=16
 MAKE_TRAMPOLINE(mach_msg_overwrite)
@@ -84,6 +88,7 @@ MAKE_TRAMPOLINE(mach_msg)
 #endif
 
 DEF_SYSCALL(read, 3)
+DEF_SYSCALL(getppid, 39)
 DEF_SYSCALL(access, 33)
 DEF_SYSCALL(lseek, 199)
 DEF_SYSCALL(__sandbox_ms, 381)

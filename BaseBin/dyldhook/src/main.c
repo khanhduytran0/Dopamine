@@ -13,6 +13,7 @@ __attribute__((section("__DATA,__jbinfo"))) static char jbinfoSection[0x4000];
 #define jbInfo ((struct dyld_jbinfo *)&jbinfoSection[0])
 
 bool gDyldhookInitDone = false;
+bool gDyldhookInSimulator = false;
 
 bool jbinfo_is_checked_in(void)
 {
@@ -60,12 +61,15 @@ void dyldhook_perform_checkin(void)
 	}
 }
 
+extern bool _ZNK5dyld39MachOFile19isBuiltForSimulatorEv(uint64_t);
 void dyldhook_init(uintptr_t kernelParams)
 {
 	// If we are in launchd, bail out
 	if (getpid() == 1) {
 		return;
 	}
+
+    gDyldhookInSimulator = _ZNK5dyld39MachOFile19isBuiltForSimulatorEv(*(uintptr_t*)kernelParams);
 
 	// Walk kernelParams to get envp
 	uintptr_t argc = *(uintptr_t *)(kernelParams + sizeof(void *));
