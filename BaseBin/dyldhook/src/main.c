@@ -69,11 +69,12 @@ void dyldhook_init(uintptr_t kernelParams)
 		return;
 	}
 
-    gDyldhookInSimulator = _ZNK5dyld39MachOFile19isBuiltForSimulatorEv(*(uintptr_t*)kernelParams);
-
 	// Walk kernelParams to get envp
 	uintptr_t argc = *(uintptr_t *)(kernelParams + sizeof(void *));
 	char **envp = (char **)(kernelParams + sizeof(void *) + sizeof(argc) + (sizeof(const char *) * argc) + sizeof(void *));
+
+    gDyldhookInSimulator = _ZNK5dyld39MachOFile19isBuiltForSimulatorEv(*(uintptr_t*)kernelParams);
+    gDyldhookInSimulator |= _simple_getenv(envp, "SIMULATOR_HOST_HOME") != NULL;
 
 	// If DYLD_INSERT_LIBRARIES is not set or does not contain systemhook, bail out
 	const char *insertLibrariesVar = _simple_getenv(envp, "DYLD_INSERT_LIBRARIES");

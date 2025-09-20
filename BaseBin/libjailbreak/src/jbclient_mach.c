@@ -7,57 +7,8 @@
 #include <dlfcn.h>
 extern int fileport_makeport (int fd, mach_port_t * port);
 
-// https://stackoverflow.com/a/35447525
-typedef struct {
-    mach_msg_header_t          header;
-    mach_msg_body_t            body;
-    mach_msg_port_descriptor_t task_port;
-} send_port_msg;
-void fill_send_port_msg(send_port_msg *msg) {
-    if (getppid() == 1) {
-        // this is probably launchd_sim
-        msg->header.msgh_local_port = MACH_PORT_NULL;
-    } else {
-        // can't send a null port, as launchd_sim will kill us
-        msg->header.msgh_local_port = mig_get_reply_port();
-    }
-    msg->header.msgh_bits = MACH_MSGH_BITS (MACH_MSG_TYPE_COPY_SEND, 0) |
-        MACH_MSGH_BITS_COMPLEX;
-    msg->header.msgh_size = sizeof(*msg);
-
-    msg->body.msgh_descriptor_count = 1;
-    msg->task_port.disposition = MACH_MSG_TYPE_COPY_SEND;
-    msg->task_port.type = MACH_MSG_PORT_DESCRIPTOR;
-}
-void send_port(mach_port_t remote_port, mach_port_t port) {
-    kern_return_t err;
-
-    send_port_msg msg;
-    fill_send_port_msg(&msg);
-    msg.header.msgh_remote_port = remote_port;
-    msg.header.msgh_id = TANK_SERVER_GET_LAUNCHD_PORT;
-    msg.task_port.name = port;
-    //err = mach_msg_send(&msg.header);
-    err = mach_msg(&msg.header, MACH_SEND_MSG, msg.header.msgh_size,
-                    0, MACH_PORT_NULL,
-                    MACH_MSG_TIMEOUT_NONE, MACH_PORT_NULL);
-}
-mach_port_t recv_port(mach_port_t recv_port) {
-    kern_return_t err;
-    struct {
-        mach_msg_header_t          header;
-        mach_msg_body_t            body;
-        mach_msg_port_descriptor_t task_port;
-        mach_msg_trailer_t         trailer;
-    } msg;
-
-    err = mach_msg(&msg.header, MACH_RCV_MSG,
-                    0, sizeof msg, recv_port,
-                    MACH_MSG_TIMEOUT_NONE, MACH_PORT_NULL);
-    //assert(err == KERN_SUCCESS);
-
-    return msg.task_port.name;
-}
+extern bool gDyldhookInSimulator;
+XPC_NOINLINE
 mach_port_t setup_recv_port(void)
 {
     mach_port_t p = MACH_PORT_NULL;
@@ -67,42 +18,62 @@ mach_port_t setup_recv_port(void)
     //assert(kr == KERN_SUCCESS);
     return p;
 }
-mach_port_t launchd_sim_mach_get_bootstrap_port(mach_port_t tank_port)
-{
-    mach_port_t port = setup_recv_port();
-    send_port(tank_port, port);
-    mach_port_t bootstrap_port = recv_port(port);
-    _kernelrpc_mach_port_deallocate_trap(task_self_trap(), port);
-    return bootstrap_port;
+XPC_NOINLINE
+kern_return_t task_get_launchd_port(mach_port_t task, mach_port_t *special_port) {
+    struct jbserver_mach_msg msg;
+    msg.hdr.msgh_size = sizeof(msg);
+    msg.hdr.msgh_bits = 0;
+    msg.action = JBSERVER_MACH_GET_HOST_LAUNCHD_PORT;
+    msg.magic = JBSERVER_MACH_MAGIC;
+
+    struct {
+        mach_msg_header_t Head;
+        /* start of the kernel processed data */
+        mach_msg_body_t msgh_body;
+        mach_msg_port_descriptor_t special_port;
+        /* end of the kernel processed data */
+        mach_msg_trailer_t trailer;
+    } reply;
+    reply.Head.msgh_size = sizeof(reply);
+
+    mach_port_t launchdPort = MACH_PORT_NULL;
+    mach_port_t replyPort = setup_recv_port();
+    task_get_bootstrap_port(task_self_trap(), &launchdPort);
+    kern_return_t kr = jbclient_mach_send_msg_internal(&msg.hdr, (struct jbserver_mach_msg_reply *)&reply, launchdPort, replyPort, true);
+    if (kr != KERN_SUCCESS) return kr;
+
+    *special_port = reply.special_port.name;
+    return KERN_SUCCESS;
 }
-extern bool gDyldhookInSimulator;
+XPC_NOINLINE
 mach_port_t jbclient_mach_get_launchd_port(void)
 {
-	static mach_port_t launchdPort = MACH_PORT_NULL;
+    static mach_port_t launchdPort = MACH_PORT_NULL;
     if(launchdPort == MACH_PORT_NULL) {
         task_get_bootstrap_port(task_self_trap(), &launchdPort);
         // launchdPort might be null if we're in xpcproxy
         if(launchdPort != MACH_PORT_NULL && gDyldhookInSimulator) {
-            mach_port_t launchdHostPort = launchd_sim_mach_get_bootstrap_port(launchdPort);
+            mach_port_t launchdHostPort = MACH_PORT_NULL;
+            task_get_launchd_port(launchdPort, &launchdHostPort);
             if(launchdHostPort != MACH_PORT_NULL) {
                 launchdPort = launchdHostPort;
             }
         }
     }
-	return launchdPort;
+    return launchdPort;
 }
 
-kern_return_t jbclient_mach_send_msg(mach_msg_header_t *hdr, struct jbserver_mach_msg_reply *reply)
+kern_return_t jbclient_mach_send_msg_internal(mach_msg_header_t *hdr, struct jbserver_mach_msg_reply *reply, mach_port_t launchdPort, mach_port_t replyPort, boolean_t isReceivingPort)
 {
-	mach_port_t replyPort = mig_get_reply_port();
+    //mach_port_t replyPort = mig_get_reply_port();
 	if (!replyPort)
 		return KERN_FAILURE;
 	
-	mach_port_t launchdPort = jbclient_mach_get_launchd_port();
+	//mach_port_t launchdPort = jbclient_mach_get_launchd_port();
 	if (!launchdPort)
 		return KERN_FAILURE;
 	
-	hdr->msgh_bits |= MACH_MSGH_BITS(MACH_MSG_TYPE_COPY_SEND, MACH_MSG_TYPE_MAKE_SEND_ONCE);
+    hdr->msgh_bits |= MACH_MSGH_BITS(MACH_MSG_TYPE_COPY_SEND, (isReceivingPort ? MACH_MSG_TYPE_MAKE_SEND : MACH_MSG_TYPE_MAKE_SEND_ONCE));
 
 	// size already set
 	hdr->msgh_remote_port  = launchdPort;
@@ -124,9 +95,13 @@ kern_return_t jbclient_mach_send_msg(mach_msg_header_t *hdr, struct jbserver_mac
 	}
 	
 	// Get rid of any rights we might have received
-	mach_msg_destroy(&reply->msg.hdr);
-	//mach_port_deallocate(task_self_trap(), launchdPort);
+    if(isReceivingPort)
+        mach_port_deallocate(task_self_trap(), replyPort);
 	return KERN_SUCCESS;
+}
+kern_return_t jbclient_mach_send_msg(mach_msg_header_t *hdr, struct jbserver_mach_msg_reply *reply)
+{
+    return jbclient_mach_send_msg_internal(hdr, reply, jbclient_mach_get_launchd_port(), mig_get_reply_port(), false);
 }
 
 int jbclient_mach_process_checkin(char *jbRootPathOut, char *bootUUIDOut, char *sandboxExtensionsOut, bool *fullyDebuggedOut)

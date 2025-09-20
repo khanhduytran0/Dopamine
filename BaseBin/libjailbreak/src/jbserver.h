@@ -50,6 +50,7 @@ int jbserver_received_xpc_message(struct jbserver_impl *server, xpc_object_t xms
 #define JBSERVER_MACH_CHECKIN 0
 #define JBSERVER_MACH_FORK_FIX 1
 #define JBSERVER_MACH_TRUST_FILE 2
+#define JBSERVER_MACH_GET_HOST_LAUNCHD_PORT 1000
 
 struct jbserver_mach_msg {
     mach_msg_header_t hdr;
