@@ -16,6 +16,7 @@ static bool platform_domain_allowed(audit_token_t clientToken)
 
 int platform_clear_process_noattach(uint64_t pid, bool preflight, bool hideTraced)
 {
+#if DOPAMINE_HAS_KRW
     uint64_t proc = proc_find(pid);
     if (!proc) return -1;
     // p_lflag stands next to p_flag
@@ -40,6 +41,7 @@ int platform_clear_process_noattach(uint64_t pid, bool preflight, bool hideTrace
         }
     }
     kwrite32(proc + off_lflag, flag);
+#endif
     return 0;
 }
 

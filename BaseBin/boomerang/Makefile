@@ -6,7 +6,7 @@ CFLAGS = -framework Foundation -framework CoreServices -framework Security -I../
 LDFLAGS = -L../.build -ljailbreak
 
 sign: $(TARGET)
-	@ldid -Sentitlements.plist $<
+	@ldid -Cadhoc -Sentitlements.plist $<
 
 $(TARGET): $(wildcard src/*.c)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^

@@ -7,6 +7,7 @@
 #include "info.h"
 #include "primitives.h"
 
+#if DOPAMINE_HAS_KRW
 void _trustcache_file_init(trustcache_file_v1 *file)
 {
 	memset(file, 0, sizeof(*file));
@@ -422,3 +423,4 @@ bool is_cdhash_trustcached(cdhash_t CDHash)
 	});
 	return inTrustCache;
 }
+#endif

@@ -6,7 +6,7 @@ CFLAGS = -framework Foundation -framework CoreServices -framework Security -fram
 LDFLAGS = -larchive -lbsm -L../.build -F ../_external/frameworks -lchoma
 
 sign: $(TARGET)
-	@ldid -S $<
+	@ldid -Cadhoc -S $<
 
 $(TARGET): $(wildcard src/*.c src/*.m src/*.S ../_external/modules/litehook/src/*.c)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^

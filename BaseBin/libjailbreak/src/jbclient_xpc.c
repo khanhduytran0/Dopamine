@@ -9,6 +9,15 @@
 #include <dlfcn.h>
 #include <os/alloc_once_private.h>
 
+#if !DOPAMINE_HAS_KRW
+#include <libproc.h>
+#include <sys/proc_info.h>
+#define SSTOP   4          /* Process debugging or suspension. */
+#define PT_DETACH    11    /* stop tracing a process */
+#define PT_ATTACHEXC 14    /* attach to running process with signal exception */
+extern int ptrace(int request, pid_t pid, caddr_t addr, int data);
+#endif
+
 struct xpc_global_data {
 	uint64_t    a;
 	uint64_t    xpc_flags;
@@ -243,6 +252,7 @@ double jbclient_jbsettings_get_double(const char *key)
 	return 0;
 }
 
+#if DOPAMINE_HAS_KRW
 int jbclient_platform_clear_process_noattach(uint64_t pid, bool preflight, bool hideTraced)
 {
     xpc_object_t xargs = xpc_dictionary_create_empty();
@@ -258,9 +268,11 @@ int jbclient_platform_clear_process_noattach(uint64_t pid, bool preflight, bool 
     }
     return -1;
 }
+#endif
 
 int jbclient_platform_set_process_debugged(uint64_t pid, bool fullyDebugged)
 {
+#if DOPAMINE_HAS_KRW
 	xpc_object_t xargs = xpc_dictionary_create_empty();
 	xpc_dictionary_set_uint64(xargs, "pid", pid);
 	xpc_dictionary_set_bool(xargs, "fully-debugged", fullyDebugged);
@@ -272,6 +284,23 @@ int jbclient_platform_set_process_debugged(uint64_t pid, bool fullyDebugged)
 		return result;
 	}
 	return -1;
+#else
+    // On InternalUI device we will mimick this using ptrace.
+    // launchdhook will also use this routine to set process as debugged since launchd is denied from using ptrace.
+    int ret = ptrace(PT_ATTACHEXC, pid, 0, 0);
+    if (ret != 0) {
+        return ret;
+    }
+    
+    // proc_paused
+    struct proc_bsdinfo procInfo = {0};
+    for (int i=0; i<1000*50; i++){
+        proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &procInfo, sizeof(procInfo));
+        if(procInfo.pbi_status == SSTOP) break;
+        usleep(10);
+    }
+    return ptrace(PT_DETACH, pid, 0, 0);
+#endif
 }
 
 int jbclient_platform_stage_jailbreak_update(const char *updateTar)
@@ -486,6 +515,7 @@ int jbclient_root_trustcache_clear(void)
 	return -1;
 }
 
+#if DOPAMINE_HAS_KRW
 int jbclient_boomerang_done(void)
 {
 	xpc_object_t xreply = jbserver_xpc_send(JBS_DOMAIN_ROOT, JBS_BOOMERANG_DONE, NULL);
@@ -496,3 +526,4 @@ int jbclient_boomerang_done(void)
 	}
 	return -1;
 }
+#endif

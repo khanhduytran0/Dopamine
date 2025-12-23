@@ -1,3 +1,4 @@
+#if DOPAMINE_HAS_KRW
 #include "physrw.h"
 #include "primitives.h"
 #include "kernel.h"
@@ -59,6 +60,7 @@ int physrw_physwritebuf(uint64_t pa, const void* input, size_t size)
 
 int physrw_handoff(pid_t pid)
 {
+#if DOPAMINE_HAS_KRW
 	if (!pid) return -1;
 
 	uint64_t proc = proc_find(pid);
@@ -82,6 +84,9 @@ int physrw_handoff(pid_t pid)
 
 	proc_rele(proc);
 	return ret;
+#else
+    return 0;
+#endif
 }
 
 int libjailbreak_physrw_init(bool receivedHandoff)
@@ -96,3 +101,4 @@ int libjailbreak_physrw_init(bool receivedHandoff)
 
 	return 0;
 }
+#endif

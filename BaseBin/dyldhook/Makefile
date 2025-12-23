@@ -10,19 +10,19 @@ all: dyldhook_merge.arm64e.dylib dyldhook_merge.arm64e.iOS15.dylib dyldhook_merg
 
 dyldhook_merge.arm64e.dylib: $(FILES) $(FILES_IOS16)
 	$(CC) -arch arm64e $(CFLAGS) -DIOS=16 $(LDFLAGS) -o $@ $^
-	@ldid -S $@
+	@ldid -Cadhoc -S $@
 
 dyldhook_merge.arm64e.iOS15.dylib: $(FILES) $(FILES_IOS15)
 	$(CC) -arch arm64e $(CFLAGS) -DIOS=15 $(LDFLAGS) -o $@ $^
-	@ldid -S $@
+	@ldid -Cadhoc -S $@
 
 dyldhook_merge.arm64.dylib: $(FILES) $(FILES_IOS16)
 	$(CC) -arch arm64 $(CFLAGS) -DIOS=16 $(LDFLAGS) -o $@ $^
-	@ldid -S $@
+	@ldid -Cadhoc -S $@
 
 dyldhook_merge.arm64.iOS15.dylib: $(FILES) $(FILES_IOS15)
 	$(CC) -arch arm64 $(CFLAGS) -DIOS=15 $(LDFLAGS) -o $@ $^
-	@ldid -S $@
+	@ldid -Cadhoc -S $@
 
 clean:
 	@rm -f dyldhook_merge.arm64e.dylib

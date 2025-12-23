@@ -2,7 +2,11 @@
 #include <string.h>
 #include <unistd.h>
 #include <kern_memorystatus.h>
+#if DOPAMINE_HAS_KRW
 #include <substrate.h>
+#else
+#include "jitless.h"
+#endif
 
 // Allocated page tables (done by physrw handoff) count towards the physical memory footprint of the process that created them
 // Unfortunately that means jetsam kills us if we do it too often

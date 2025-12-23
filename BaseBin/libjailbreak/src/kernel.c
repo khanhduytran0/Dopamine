@@ -8,6 +8,7 @@
 
 uint64_t proc_find(pid_t pidToFind)
 {
+#if DOPAMINE_HAS_KRW
 	__block uint64_t foundProc = 0;
 	// This sucks a bit due to us not being able to take locks
 	// If we don't find anything, just repeat 5 times
@@ -22,6 +23,9 @@ uint64_t proc_find(pid_t pidToFind)
 		});
 	}
 	return foundProc;
+#else
+    return pidToFind;
+#endif
 }
 
 int proc_rele(uint64_t proc)
@@ -32,6 +36,7 @@ int proc_rele(uint64_t proc)
 
 uint64_t proc_task(uint64_t proc)
 {
+#if DOPAMINE_HAS_KRW
 	if (koffsetof(proc, task)) {
 		// iOS <= 15: proc has task attribute
 		return kread_ptr(proc + koffsetof(proc, task));
@@ -40,8 +45,12 @@ uint64_t proc_task(uint64_t proc)
 		// iOS >= 16: task is always at "proc + sizeof(proc)"
 		return proc + ksizeof(proc);
 	}
+#else
+    return 0;
+#endif
 }
 
+#if DOPAMINE_HAS_KRW
 uint64_t proc_ucred(uint64_t proc)
 {
 	if (gSystemInfo.kernelStruct.proc_ro.exists) {
@@ -52,9 +61,11 @@ uint64_t proc_ucred(uint64_t proc)
 		return kread_ptr(proc + koffsetof(proc, ucred));
 	}
 }
+#endif
 
 uint32_t proc_getcsflags(uint64_t proc)
 {
+#if DOPAMINE_HAS_KRW
 	if (gSystemInfo.kernelStruct.proc_ro.exists) {
 		uint64_t proc_ro = kread_ptr(proc + koffsetof(proc, proc_ro));
 		return kread32(proc_ro + koffsetof(proc_ro, csflags));
@@ -62,6 +73,11 @@ uint32_t proc_getcsflags(uint64_t proc)
 	else {
 		return kread32(proc + koffsetof(proc, csflags));
 	}
+#else
+    uint32_t csFlags = 0;
+    csops(proc, CS_OPS_STATUS, &csFlags, sizeof(csFlags));
+    return csFlags;
+#endif
 }
 
 void proc_csflags_update(uint64_t proc, uint32_t flags)
@@ -151,6 +167,7 @@ int pmap_cs_allow_invalid(uint64_t pmap)
 
 int cs_allow_invalid(uint64_t proc, bool emulateFully)
 {
+#if DOPAMINE_HAS_KRW
 	if (proc) {
 		uint64_t task = proc_task(proc);
 		if (task) {
@@ -185,6 +202,17 @@ int cs_allow_invalid(uint64_t proc, bool emulateFully)
 			}
 		}
 	}
+#else
+    // spawn jbctl to allow invalid code signing for us, since we cannot do this in launchd
+    uint32_t csFlags = 0;
+    csops(proc, CS_OPS_STATUS, &csFlags, sizeof(csFlags));
+    if (!(csFlags & CS_DEBUGGED)) {
+        char *envp[] = { "DOPAMINE_EXEMPT_DYLDHOOK=1", NULL };
+        char pidStr[16];
+        snprintf(pidStr, sizeof(pidStr), "%d", proc);
+        return exec_cmd_env(envp, JBROOT_PATH("/basebin/jbctl"), "proc_set_debugged", pidStr, NULL);
+    }
+#endif
 	return 0;
 }
 

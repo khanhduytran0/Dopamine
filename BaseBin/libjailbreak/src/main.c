@@ -14,6 +14,7 @@ int jbclient_initialize_primitives_internal(bool physrwPTE)
 {
 	if (getuid() != 0) return -1;
 
+#if DOPAMINE_HAS_KRW
 	xpc_object_t xSystemInfo = NULL;
 	if (jbclient_root_get_sysinfo(&xSystemInfo) == 0) {
 		SYSTEM_INFO_DESERIALIZE(xSystemInfo);
@@ -46,6 +47,19 @@ int jbclient_initialize_primitives_internal(bool physrwPTE)
 	}
 
 	return -1;
+#else
+    jbinfo(rootPath) = getenv("DOPAMINE_JBROOT");
+    unsetenv("DOPAMINE_JBROOT");
+    if (!jbinfo(rootPath)) {
+        char rootPath[PATH_MAX];
+        strcpy(rootPath, "/var/jb");
+        readlink(rootPath, rootPath, sizeof(rootPath)-1);
+        jbinfo(rootPath) = strdup(rootPath);
+    }
+    jbsetting(markAppsAsDebugged) = true;
+    jbsetting(jetsamMultiplier) = 2.0;
+    return 0;
+#endif
 }
 
 int jbclient_initialize_primitives(void)

@@ -1,3 +1,4 @@
+#if DOPAMINE_HAS_KRW
 #include "kcall_arm64.h"
 
 #include "primitives.h"
@@ -143,4 +144,5 @@ int arm64_kcall_init(void)
 
 int arm64_kcall_init(void) { return -1; }
 
+#endif
 #endif

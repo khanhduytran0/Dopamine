@@ -1,3 +1,4 @@
+#if DOPAMINE_HAS_KRW
 #include "primitives.h"
 #include "translation.h"
 #include "kernel.h"
@@ -181,3 +182,4 @@ bool device_supports_physrw_pte(void)
 	}
 	return true;
 }
+#endif

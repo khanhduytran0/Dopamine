@@ -20,6 +20,7 @@ static bool boomerang_domain_allowed(audit_token_t clientToken)
 int boomerang_get_physrw(audit_token_t *clientToken, bool singlePTE, uint64_t *singlePTEAsidPtr)
 {
 	int r = -1;
+#if DOPAMINE_HAS_KRW
 	pid_t pid = audit_token_to_pid(*clientToken);
 
 	thread_caffeinate_start();
@@ -30,12 +31,13 @@ int boomerang_get_physrw(audit_token_t *clientToken, bool singlePTE, uint64_t *s
 		r = physrw_handoff(pid);
 	}
 	thread_caffeinate_stop();
-
+#endif
 	return r;
 }
 
 int boomerang_sign_thread(audit_token_t *clientToken, mach_port_t threadPort)
 {
+#if DOPAMINE_HAS_KRW
 	pid_t pid = audit_token_to_pid(*clientToken);
 	uint64_t proc = proc_find(pid);
 	if (proc) {
@@ -43,6 +45,7 @@ int boomerang_sign_thread(audit_token_t *clientToken, mach_port_t threadPort)
 		proc_rele(proc);
 		return r;
 	}
+#endif
 	return -1;
 }
 

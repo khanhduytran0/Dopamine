@@ -61,10 +61,35 @@ typedef NS_ENUM(NSInteger, JBErrorCode) {
     JBErrorCodeFailedDuplicateApps           = -14,
 };
 
+#if !DOPAMINE_HAS_KRW
+#import <libjailbreak/carboncopy.h>
+// from TrollStore/Shared/TSUtil.h
+// CSCommon.h
+typedef struct CF_BRIDGED_TYPE(id) __SecCode const* SecStaticCodeRef; /* code on disk */
+
+typedef CF_OPTIONS(uint32_t, SecCSFlags) {
+    kSecCSDefaultFlags = 0
+};
+
+// SecStaticCode.h
+OSStatus SecStaticCodeCreateWithPathAndAttributes(CFURLRef path, SecCSFlags flags, CFDictionaryRef attributes,
+                                                  SecStaticCodeRef* __nonnull CF_RETURNS_RETAINED staticCode);
+
+// SecCode.h
+CF_ENUM(uint32_t){
+    kSecCSRequirementInformation = 1 << 2,
+};
+
+OSStatus SecCodeCopySigningInformation(SecStaticCodeRef code, SecCSFlags flags, CFDictionaryRef* __nonnull CF_RETURNS_RETAINED information);
+extern CFStringRef kSecCodeInfoEntitlementsDict;
+#endif
+
 @implementation DOJailbreaker
 
+#if DOPAMINE_HAS_KRW
 - (NSError *)gatherSystemInformation
 {
+
     NSString *kernelPath = [[DOEnvironmentManager sharedManager] accessibleKernelPath];
     if (!kernelPath) return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedToFindKernel userInfo:@{NSLocalizedDescriptionKey:@"Failed to find kernelcache. Ensure your device is properly connected to the internet. If it still does not work, try installing Dopamine via TrollStore instead."}];
     NSLog(@"Kernel at %s", kernelPath.UTF8String);
@@ -185,7 +210,6 @@ typedef NS_ENUM(NSInteger, JBErrorCode) {
     if (![DOEnvironmentManager sharedManager].isArm64e) {
         arm64_kcall_init();
     }
-
     return nil;
 }
 
@@ -210,9 +234,11 @@ typedef NS_ENUM(NSInteger, JBErrorCode) {
     if (r != 0) return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedCleanup userInfo:@{NSLocalizedDescriptionKey:[NSString stringWithFormat:@"Failed to cleanup exploits: %d", r]}];
     return nil;
 }
+#endif
 
 - (NSError *)elevatePrivileges
 {
+#if DOPAMINE_HAS_KRW
     uint64_t proc = proc_self();
     uint64_t ucred = proc_ucred(proc);
     
@@ -227,20 +253,28 @@ typedef NS_ENUM(NSInteger, JBErrorCode) {
     kwrite32(ucred + koffsetof(ucred, rgid), 0);
     kwrite32(ucred + koffsetof(ucred, svgid), 0);
     kwrite32(ucred + koffsetof(ucred, groups), 0);
+#else
+    setuid(0);
+    setgid(0);
+#endif
     
+#if DOPAMINE_HAS_KRW
     // Add P_SUGID
     uint32_t flag = kread32(proc + koffsetof(proc, flag));
     if ((flag & P_SUGID) != 0) {
         flag &= P_SUGID;
         kwrite32(proc + koffsetof(proc, flag), flag);
     }
+#endif
     
     if (getuid() != 0) return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedGetRoot userInfo:@{NSLocalizedDescriptionKey:[NSString stringWithFormat:@"Failed to get root, uid still %d", getuid()]}];
     if (getgid() != 0) return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedGetRoot userInfo:@{NSLocalizedDescriptionKey:[NSString stringWithFormat:@"Failed to get root, gid still %d", getgid()]}];
     
+#if DOPAMINE_HAS_KRW
     // Unsandbox
     uint64_t label = kread_ptr(ucred + koffsetof(ucred, label));
     mac_label_set(label, 1, -1);
+#endif
     NSError *error = nil;
     [[NSFileManager defaultManager] contentsOfDirectoryAtPath:@"/var" error:&error];
     if (error) return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedUnsandbox userInfo:@{NSLocalizedDescriptionKey:[NSString stringWithFormat:@"Failed to unsandbox, /var does not seem accessible (%s)", error.description.UTF8String]}];
@@ -269,8 +303,10 @@ typedef NS_ENUM(NSInteger, JBErrorCode) {
     }
     *pain = strdup("/var/tmp");*/
     
+#if DOPAMINE_HAS_KRW
     // Get CS_PLATFORM_BINARY
     proc_csflags_set(proc, CS_PLATFORM_BINARY);
+#endif
     uint32_t csflags;
     csops(getpid(), CS_OPS_STATUS, &csflags, sizeof(csflags));
     if (!(csflags & CS_PLATFORM_BINARY)) return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedPlatformize userInfo:@{NSLocalizedDescriptionKey:@"Failed to get CS_PLATFORM_BINARY"}];
@@ -287,13 +323,16 @@ typedef NS_ENUM(NSInteger, JBErrorCode) {
 
 - (NSError *)ensureDevModeEnabled
 {
+#if DOPAMINE_HAS_KRW
     if (@available(iOS 16.0, *)) {
         uint64_t developer_mode_storage = kread64(ksymbol(developer_mode_enabled));
         kwrite8(developer_mode_storage, 1);
     }
+#endif
     return nil;
 }
 
+#if DOPAMINE_HAS_KRW
 - (NSError *)loadBasebinTrustcache
 {
     trustcache_file_v1 *basebinTcFile = NULL;
@@ -380,6 +419,154 @@ void *boomerang_server(struct boomerang_info *info)
     }
     return nil;
 }
+#endif
+
+
+#if !DOPAMINE_HAS_KRW
+// from TrollStore/Shared/TSUtil.h
+SecStaticCodeRef getStaticCodeRef(NSString *binaryPath)
+{
+    if(binaryPath == nil)
+    {
+        return NULL;
+    }
+    
+    CFURLRef binaryURL = CFURLCreateWithFileSystemPath(kCFAllocatorDefault, (__bridge CFStringRef)binaryPath, kCFURLPOSIXPathStyle, false);
+    if(binaryURL == NULL)
+    {
+        NSLog(@"[getStaticCodeRef] failed to get URL to binary %@", binaryPath);
+        return NULL;
+    }
+    
+    SecStaticCodeRef codeRef = NULL;
+    OSStatus result;
+    
+    result = SecStaticCodeCreateWithPathAndAttributes(binaryURL, kSecCSDefaultFlags, NULL, &codeRef);
+    
+    CFRelease(binaryURL);
+    
+    if(result != errSecSuccess)
+    {
+        NSLog(@"[getStaticCodeRef] failed to create static code for binary %@", binaryPath);
+        return NULL;
+    }
+        
+    return codeRef;
+}
+
+NSDictionary* dumpEntitlements(SecStaticCodeRef codeRef)
+{
+    if(codeRef == NULL)
+    {
+        NSLog(@"[dumpEntitlements] attempting to dump entitlements without a StaticCodeRef");
+        return nil;
+    }
+    
+    CFDictionaryRef signingInfo = NULL;
+    OSStatus result;
+    
+    result = SecCodeCopySigningInformation(codeRef, kSecCSRequirementInformation, &signingInfo);
+    
+    if(result != errSecSuccess)
+    {
+        NSLog(@"[dumpEntitlements] failed to copy signing info from static code");
+        return nil;
+    }
+    
+    NSDictionary *entitlementsNSDict = nil;
+    
+    CFDictionaryRef entitlements = CFDictionaryGetValue(signingInfo, kSecCodeInfoEntitlementsDict);
+    if(entitlements == NULL)
+    {
+        NSLog(@"[dumpEntitlements] no entitlements specified");
+    }
+    else if(CFGetTypeID(entitlements) != CFDictionaryGetTypeID())
+    {
+        NSLog(@"[dumpEntitlements] invalid entitlements");
+    }
+    else
+    {
+        entitlementsNSDict = (__bridge NSDictionary *)(entitlements);
+        //NSLog(@"[dumpEntitlements] dumped %@", entitlementsNSDict);
+    }
+    
+    CFRelease(signingInfo);
+    return entitlementsNSDict;
+}
+
+NSDictionary* dumpEntitlementsFromBinaryAtPath(NSString *binaryPath)
+{
+    // This function is intended for one-shot checks. Main-event functions should retain/release their own SecStaticCodeRefs
+    
+    if(binaryPath == nil)
+    {
+        return nil;
+    }
+    
+    SecStaticCodeRef codeRef = getStaticCodeRef(binaryPath);
+    if(codeRef == NULL)
+    {
+        return nil;
+    }
+    
+    NSDictionary *entitlements = dumpEntitlements(codeRef);
+    CFRelease(codeRef);
+
+    return entitlements;
+}
+
+- (NSError *)patchLaunchdForUntether
+{
+    NSString *launchdPatchedPath = @"/usr/appleinternal/sbin/launchd.dopamine";
+    NSString *launchdStagingPath = @"/tmp/launchd.dopamine";
+    if ([[NSFileManager defaultManager] fileExistsAtPath:launchdPatchedPath]) {
+        return nil;
+    }
+    int r = 0;
+    
+    // Remount rootfs r/w. TODO switch to mount() directly?
+    r = exec_cmd_trusted("/sbin/mount", "-uw", "/", NULL);
+    if (r != 0) {
+        return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedInitFakeLib userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Failed to remount rootfs read-write: %d. Please go to Livability > Advanced > boot-args and enable Live File System to continue.", r]}];
+    }
+    
+    // Make a copy of launchd.development to patch
+    carbonCopy(@"/usr/appleinternal/sbin/launchd.development", launchdStagingPath);
+    carbonCopy([NSBundle.mainBundle.bundlePath stringByAppendingPathComponent:@"dopauntether.dylib"], @"/usr/lib/dopauntether.dylib");
+    
+    // Internal devices have convenient binaries in place, so just use them :)
+    // Switch libsandbox.1.dylib (which is a weak dylib) to dopauntether.dylib
+    r = exec_cmd_trusted("/usr/bin/install_name_tool", "-change", "/usr/lib/libsandbox.1.dylib", "/usr/lib/dopauntether.dylib", launchdStagingPath.fileSystemRepresentation, NULL);
+    if (r != 0) {
+        return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedInitFakeLib userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Failed to run install_name_tool: %d", r]}];
+    }
+    
+    // Add bindfs entitlement for fakelib
+    NSMutableDictionary *entitlements = dumpEntitlementsFromBinaryAtPath(launchdStagingPath).mutableCopy;
+    if(entitlements == nil) {
+        return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedInitFakeLib userInfo:@{NSLocalizedDescriptionKey : @"Failed to dump entitlements from launchd"}];
+    }
+    entitlements[@"com.apple.private.bindfs-allow"] = @YES;
+    entitlements[@"com.apple.private.security.no-container"] = @YES;
+    entitlements[@"platform-application"] = @YES;
+    NSData *entitlementsXML = [NSPropertyListSerialization dataWithPropertyList:entitlements format:NSPropertyListXMLFormat_v1_0 options:0 error:nil];
+    NSString *entitlementsPath = @"/tmp/launchd.ent.plist";
+    [entitlementsXML writeToFile:entitlementsPath atomically:NO];
+    
+    // Codesign patched launchd
+    r = exec_cmd_trusted("/usr/local/bin/codesign", "--force", "--sign", "-", "--entitlements", entitlementsPath.fileSystemRepresentation, launchdStagingPath.fileSystemRepresentation, NULL);
+    //[[NSFileManager defaultManager] removeItemAtPath:entitlementsPath error:nil];
+    if (r != 0) {
+        return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedInitFakeLib userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Failed to codesign patched launchd: %d", r]}];
+    }
+    
+    carbonCopy(launchdStagingPath, launchdPatchedPath);
+    [[NSFileManager defaultManager] removeItemAtPath:launchdStagingPath error:nil];
+    
+    return nil;
+}
+#endif
+
 
 - (NSError *)createFakeLib
 {
@@ -388,6 +575,7 @@ void *boomerang_server(struct boomerang_info *info)
         return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedInitFakeLib userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Creating fakelib failed with error: %d", r]}];
     }
 
+#if DOPAMINE_HAS_KRW
     cdhash_t *cdhashes = NULL;
     uint32_t cdhashesCount = 0;
     file_collect_untrusted_cdhashes_by_path(JBROOT_PATH("/basebin/.fakelib/dyld"), &cdhashes, &cdhashesCount);
@@ -412,6 +600,10 @@ void *boomerang_server(struct boomerang_info *info)
     
     // Now that fakelib is up, we want to make systemhook inject into any binary we spawn
     setenv("DYLD_INSERT_LIBRARIES", "/usr/lib/systemhook.dylib", 1);
+#else
+    // Now that fakelib is up, we want to make systemhook inject into any binary we spawn
+    setenv("DYLD_INSERT_LIBRARIES", "/var/jb/basebin/systemhook.dylib", 1);
+#endif
     return nil;
 }
 
@@ -498,20 +690,24 @@ void *boomerang_server(struct boomerang_info *info)
     NSString *startLog = [NSString stringWithFormat:@"Starting Jailbreak (Model: %s, %@, Configuration: {removeJailbreak=%d, tweakInjection=%d, idownload=%d, appJIT=%d})", systemInfo.machine, NSProcessInfo.processInfo.operatingSystemVersionString, removeJailbreakEnabled, tweaksEnabled, idownloadEnabled, appJITEnabled];
     [[DOUIManager sharedInstance] sendLog:startLog debug:YES];
     
+#if DOPAMINE_HAS_KRW
     *errOut = [self gatherSystemInformation];
     if (*errOut) return;
     *errOut = [self doExploitation];
     if (*errOut) return;
+#endif
     
     gSystemInfo.jailbreakSettings.markAppsAsDebugged = appJITEnabled;
     gSystemInfo.jailbreakSettings.jetsamMultiplier = jetsamMultiplierOption ? (jetsamMultiplierOption.doubleValue / 2) : 0;
     
+#if DOPAMINE_HAS_KRW
     [[DOUIManager sharedInstance] sendLog:DOLocalizedString(@"Building Phys R/W Primitive") debug:NO];
     *errOut = [self buildPhysRWPrimitive];
     if (*errOut) return;
     [[DOUIManager sharedInstance] sendLog:DOLocalizedString(@"Cleaning Up Exploits") debug:NO];
     *errOut = [self cleanUpExploits];
     if (*errOut) return;
+#endif
     
     // We will not be able to reset this after elevating privileges, so do it now
     if (removeJailbreakEnabled) [[DOPreferenceManager sharedManager] setPreferenceValue:@NO forKey:@"removeJailbreakEnabled"];
@@ -537,7 +733,12 @@ void *boomerang_server(struct boomerang_info *info)
     
     *errOut = [[DOEnvironmentManager sharedManager] prepareBootstrap];
     if (*errOut) return;
+#if DOPAMINE_HAS_KRW
     setenv("PATH", "/sbin:/bin:/usr/sbin:/usr/bin:/var/jb/sbin:/var/jb/bin:/var/jb/usr/sbin:/var/jb/usr/bin", 1);
+#else
+    // InternalUI devices have many stock commands which may interfere with jb commands, so we prioritize jb ones
+    setenv("PATH", "/var/jb/sbin:/var/jb/bin:/var/jb/usr/sbin:/var/jb/usr/bin:/sbin:/bin:/usr/sbin:/usr/bin", 1);
+#endif
     setenv("TERM", "xterm-256color", 1);
 
     *errOut = [[DOEnvironmentManager sharedManager] updateBootLogo];
@@ -548,6 +749,7 @@ void *boomerang_server(struct boomerang_info *info)
         [[NSData data] writeToFile:JBROOT_PATH(@"/basebin/.safe_mode") atomically:YES];
     }
     
+#if DOPAMINE_HAS_KRW
     [[DOUIManager sharedInstance] sendLog:DOLocalizedString(@"Loading BaseBin TrustCache") debug:NO];
     *errOut = [self loadBasebinTrustcache];
     if (*errOut) return;
@@ -562,6 +764,12 @@ void *boomerang_server(struct boomerang_info *info)
     [[DOUIManager sharedInstance] sendLog:DOLocalizedString(@"Initializing Protection") debug:NO];
     *errOut = [self applyProtection];
     if (*errOut) return;
+#else
+    // We cannot load trustcache and bind mount on InternalUI devices so we skip all these
+    // Instead, we will adhoc sign binaries to satisfy AMFI. Also opainject is seemingly broken so we just inject directly to launchd and switch it via boot-args instead
+    *errOut = [self patchLaunchdForUntether];
+    if (*errOut) return;
+#endif
     
     [[DOUIManager sharedInstance] sendLog:DOLocalizedString(@"Applying Bind Mount") debug:NO];
     *errOut = [self createFakeLib];
@@ -593,8 +801,12 @@ void *boomerang_server(struct boomerang_info *info)
 
 - (void)finalize
 {
+#if DOPAMINE_HAS_KRW
     [[DOUIManager sharedInstance] sendLog:DOLocalizedString(@"Rebooting Userspace") debug:NO];
     [[DOEnvironmentManager sharedManager] rebootUserspace];
+#else
+    // TODO
+#endif
 }
 
 @end

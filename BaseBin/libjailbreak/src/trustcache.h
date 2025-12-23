@@ -30,7 +30,7 @@ int trustcache_file_upload_with_uuid(trustcache_file_v1 *tc, uuid_t uuid);
 int trustcache_file_build_from_cdhashes(cdhash_t *CDHashes, uint32_t CDHashCount, trustcache_file_v1 **tcOut);
 int trustcache_file_build_from_path(const char *filePath, trustcache_file_v1 **tcOut);
 
-bool is_cdhash_in_trustcache(uint64_t tcKaddr, cdhash_t CDHash);
+//bool is_cdhash_in_trustcache(uint64_t tcKaddr, cdhash_t CDHash);
 bool is_cdhash_trustcached(cdhash_t CDHash);
 
 #endif

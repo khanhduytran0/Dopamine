@@ -1,3 +1,4 @@
+#if DOPAMINE_HAS_KRW
 #include "kalloc_pt.h"
 #include "primitives.h"
 #include "translation.h"
@@ -55,3 +56,4 @@ void libjailbreak_kalloc_pt_init(void)
 	gPrimitives.kalloc_global = kalloc_global_pt;
 	gPrimitives.kfree_global = kfree_global_pt;
 }
+#endif

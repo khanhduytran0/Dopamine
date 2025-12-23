@@ -39,6 +39,14 @@ typedef CF_OPTIONS(uint32_t, SecPreserveFlags) {
 	kSecCSPreserveRuntime = 1 << 8,
 };
 
+enum {
+    kSecCodeSignatureHost = 0x0001,            /* may host guest code */
+    kSecCodeSignatureAdhoc = 0x0002,        /* must be used without signer */
+    kSecCodeSignatureForceHard = 0x0100,    /* always set HARD mode on launch */
+    kSecCodeSignatureForceKill = 0x0200,    /* always set KILL mode on launch */
+    kSecCodeSignatureForceExpiration = 0x0400, /* force certificat expiration checks */
+};
+
 // SecStaticCode.h
 OSStatus SecStaticCodeCreateWithPathAndAttributes(CFURLRef path, SecCSFlags flags, CFDictionaryRef attributes,
                                                   SecStaticCodeRef* __nonnull CF_RETURNS_RETAINED staticCode);
@@ -67,6 +75,7 @@ typedef struct __SecCodeSigner* SecCodeSignerRef SPI_AVAILABLE(macos(10.5), ios(
 
 extern const CFStringRef kSecCodeSignerTeamIdentifier SPI_AVAILABLE(macos(10.5), ios(15.0), macCatalyst(13.0));
 extern const CFStringRef kSecCodeSignerEntitlements SPI_AVAILABLE(macos(10.5), ios(15.0), macCatalyst(13.0));
+extern const CFStringRef kSecCodeSignerFlags SPI_AVAILABLE(macos(10.5), ios(15.0), macCatalyst(13.0));
 extern const CFStringRef kSecCodeSignerIdentifier SPI_AVAILABLE(macos(10.5), ios(15.0), macCatalyst(13.0));
 extern const CFStringRef kSecCodeSignerIdentity SPI_AVAILABLE(macos(10.5), ios(15.0), macCatalyst(13.0));
 extern const CFStringRef kSecCodeSignerPreserveMetadata SPI_AVAILABLE(macos(10.5), ios(15.0), macCatalyst(13.0));
@@ -107,6 +116,10 @@ int resign_file(NSString *filePath, NSString *identifier, bool preserveMetadata)
 	if (identifier) {
 		parameters[(__bridge NSString *)kSecCodeSignerIdentifier] = identifier;
 	}
+
+#if !DOPAMINE_HAS_KRW
+    parameters[(__bridge NSString*)kSecCodeSignerFlags] = @(kSecCodeSignatureAdhoc);
+#endif
 
 	SecCodeSignerRef signerRef;
 	status = SecCodeSignerCreate((__bridge CFDictionaryRef)parameters, kSecCSDefaultFlags, &signerRef);

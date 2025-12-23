@@ -201,6 +201,7 @@
 		8CDD08482B4F6DF100A32B61 /* libxpf.dylib in Embed Libraries */ = {isa = PBXBuildFile; fileRef = 8CDD08442B4F6DD800A32B61 /* libxpf.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		8CDD08492B4F6DF500A32B61 /* libjailbreak.dylib in Embed Libraries */ = {isa = PBXBuildFile; fileRef = 8CDD08422B4F6DD800A32B61 /* libjailbreak.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		8CDD084A2B4F6DF800A32B61 /* libchoma.dylib in Embed Libraries */ = {isa = PBXBuildFile; fileRef = 8CDD08432B4F6DD800A32B61 /* libchoma.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		E10A8A262EFA3975004D9730 /* dopauntether.dylib in Embed Libraries */ = {isa = PBXBuildFile; fileRef = E10A8A252EFA3975004D9730 /* dopauntether.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -251,6 +252,7 @@
 				8CDD084A2B4F6DF800A32B61 /* libchoma.dylib in Embed Libraries */,
 				8CDD08492B4F6DF500A32B61 /* libjailbreak.dylib in Embed Libraries */,
 				8CDD08482B4F6DF100A32B61 /* libxpf.dylib in Embed Libraries */,
+				E10A8A262EFA3975004D9730 /* dopauntether.dylib in Embed Libraries */,
 			);
 			name = "Embed Libraries";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -540,6 +542,7 @@
 		8CDD08432B4F6DD800A32B61 /* libchoma.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libchoma.dylib; path = ../BaseBin/.build/libchoma.dylib; sourceTree = "<group>"; };
 		8CDD08442B4F6DD800A32B61 /* libxpf.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libxpf.dylib; path = ../BaseBin/.build/libxpf.dylib; sourceTree = "<group>"; };
 		C075B0CB2B8F2BCE009A26BB /* th */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = th; path = th.lproj/Localizable.strings; sourceTree = "<group>"; };
+		E10A8A252EFA3975004D9730 /* dopauntether.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = dopauntether.dylib; path = ../BaseBin/.build/dopauntether.dylib; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -807,6 +810,7 @@
 				042479E42B66B0DD0082581B /* Preferences.framework */,
 				8CDD08372B4F682500A32B61 /* IOKit.framework */,
 				8CDD08352B4F682000A32B61 /* IOSurface.framework */,
+				E10A8A252EFA3975004D9730 /* dopauntether.dylib */,
 				8CDD08432B4F6DD800A32B61 /* libchoma.dylib */,
 				8CDD08422B4F6DD800A32B61 /* libjailbreak.dylib */,
 				8CDD08442B4F6DD800A32B61 /* libxpf.dylib */,

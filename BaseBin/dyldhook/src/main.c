@@ -75,6 +75,14 @@ void dyldhook_init(uintptr_t kernelParams)
 	const char *insertLibrariesVar = _simple_getenv(envp, "DYLD_INSERT_LIBRARIES");
 	if (!insertLibrariesVar) return;
 	if (!strstr(insertLibrariesVar, "/systemhook.dylib")) return;
+#if !DOPAMINE_HAS_KRW
+    // If a process chose to exempt itself, bail out
+    // Used by launchd when executing jbctl to enable JIT
+    if (_simple_getenv(envp, "DOPAMINE_EXEMPT_DYLDHOOK") != NULL) {
+        ((char *)insertLibrariesVar)[0] = '\0';
+        return;
+    }
+#endif
 
 	// If all is well, do check-in right here before dyld_start!
 	dyldhook_perform_checkin();

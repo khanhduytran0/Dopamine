@@ -9,7 +9,7 @@
 
 all: basebin.tar
 
-subprojects: ChOma XPF MachOMerger opainject libjailbreak systemhook forkfix launchdhook boomerang jbctl idownloadd watchdoghook rootlesshooks
+subprojects: ChOma XPF MachOMerger opainject libjailbreak systemhook forkfix launchdhook boomerang jbctl idownloadd watchdoghook rootlesshooks dopauntether
 
 ChOma: .build .include
 	@$(MAKE) -C ChOma TARGET=ios DISABLE_SIGNING=1 DISABLE_TESTS=1 DYLIB_LDFLAGS="-install_name @loader_path/libchoma.dylib"
@@ -68,11 +68,16 @@ rootlesshooks: .build .include libjailbreak
 	$(MAKE) -C rootlesshooks
 	@cp rootlesshooks/.theos/obj/rootlesshooks.dylib .build
 
+dopauntether: .build .include
+	$(MAKE) -C  dopauntether
+	@cp dopauntether/dopauntether.dylib .build
+
 .build:
 	rm -rf .build
 	mkdir -p .build
 	cp -r _external/basebin/* .build
 	cp _external/basebin/.version .build
+	ldid -Cadhoc -S .build/fallback/CydiaSubstrate.framework/CydiaSubstrate
 
 .include:
 	rm -rf .include
@@ -94,6 +99,7 @@ dyldhook: basebin.tc
 
 basebin.tar: basebin.tc dyldhook
 	@find ./.build -name ".DS_Store" -delete
+	@find ./.build -name '*.dylib' -exec ldid -Cadhoc -S {} \;
 	@DYLD_FALLBACK_LIBRARY_PATH="." ./tar --transform "s/^.build/basebin/" -cvf "basebin.tar" ".build" --owner=0 --group=0
 
 clean:
@@ -111,9 +117,10 @@ clean:
 	@$(MAKE) -C watchdoghook $@
 	@$(MAKE) -C rootlesshooks $@
 	@$(MAKE) -C dyldhook $@
+	@$(MAKE) -C dopauntether $@
 	@rm -rf .build
 	@rm -rf .include
 	@rm -rf basebin.tar
 	@rm -rf basebin.tc
 
-.PHONY: clean .build .include ChOma XPF MachOMerger opainject libjailbreak systemhook forkfix launchdhook boomerang jbctl idownloadd watchdoghook rootlesshooks basebin.tc dyldhook basebin.tar
+.PHONY: clean .build .include ChOma XPF MachOMerger opainject libjailbreak systemhook forkfix launchdhook boomerang jbctl idownloadd watchdoghook rootlesshooks dopauntether basebin.tc dyldhook basebin.tar

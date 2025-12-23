@@ -10,6 +10,9 @@
 #import <pthread.h>
 #import <sys/sysctl.h>
 #import <substrate.h>
+#if !DOPAMINE_HAS_KRW
+#import <sys/mount.h>
+#endif
 
 #import "spawn_hook.h"
 #import "xpc_hook.h"
@@ -66,7 +69,11 @@ int sysctlbyname_hook(const char *name, void *oldp, size_t *oldlenp, void *newp,
 
 __attribute__((constructor)) static void initializer(void)
 {
+#if DOPAMINE_HAS_KRW
 	crashreporter_start();
+#else
+    // We don't need crash reporter as kernel.development will generate coredump for us at /var/cores
+#endif
 
 	// Retrieve jbroot path early based on our dylib path (<JBROOT>/basebin/launchd) so we can use JBROOT_PATH before boomerang_recoverPrimitives
 	@autoreleasepool {
@@ -104,9 +111,11 @@ __attribute__((constructor)) static void initializer(void)
 		draw_boot_logo(JBROOT_PATH("/basebin/bootlogo.jp2"));
 	}
 	else {
+#if DOPAMINE_HAS_KRW
 		// Here we should have been injected into a live launchd on the fly
 		// In this case, we are not in early boot...
 		gInEarlyBoot = false;
+#endif
 		firstLoad = true;
 	}
 
@@ -124,7 +133,9 @@ __attribute__((constructor)) static void initializer(void)
 		unsetenv("JBUPDATE_NEW_VERSION");
 	}
 
+#if DOPAMINE_HAS_KRW
 	cs_allow_invalid(proc_self(), false);
+#endif
 
 	initXPCHooks();
 	initDaemonHooks();
@@ -132,6 +143,18 @@ __attribute__((constructor)) static void initializer(void)
 	initIPCHooks();
 	initJetsamHook();
 	MSHookFunction((void *)sysctlbyname, (void *)sysctlbyname_hook, (void **)&sysctlbyname_orig);
+
+#if !DOPAMINE_HAS_KRW
+    // On first load we perform fakelib mount right here
+    if (firstLoad || !access("/var/.force_remount_fakelib", F_OK)) {
+        remove("/var/.force_remount_fakelib");
+        if (mount("bindfs", "/usr/lib", MNT_RDONLY, (void *)JBROOT_PATH("/basebin/.fakelib")) != 0) {
+            char msg[4000];
+            snprintf(msg, 4000, "Dopamine: Failed to mount fakelib /usr/lib -> %s: %s. Cannot continue", (char *)JBROOT_PATH("/basebin/.fakelib"), strerror(errno));
+            abort_with_reason(7, 1, msg, 0);
+        }
+    }
+#endif
 
 	if (getenv("DOPAMINE_IS_HIDDEN") != 0) {
 		// If the jailbreak is currently hidden, fakelib had to be mounted again before the userspace reboot

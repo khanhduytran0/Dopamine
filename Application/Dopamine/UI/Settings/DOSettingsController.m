@@ -176,6 +176,7 @@
         [specifiers addObject:headerSpecifier];
         
         if (envManager.isSupported) {
+#if DOPAMINE_HAS_KRW
             if (!envManager.isJailbroken) {
                 PSSpecifier *exploitGroupSpecifier = [PSSpecifier emptyGroupSpecifier];
                 exploitGroupSpecifier.name = DOLocalizedString(@"Section_Exploits");
@@ -219,6 +220,7 @@
                     [specifiers addObject:pplBypassSpecifier];
                 }
             }
+#endif
             
             PSSpecifier *settingsGroupSpecifier = [PSSpecifier emptyGroupSpecifier];
             settingsGroupSpecifier.name = DOLocalizedString(@"Section_Jailbreak_Settings");

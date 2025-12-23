@@ -279,6 +279,7 @@ void jbinfo_initialize_hardcoded_offsets(void)
 	}
 }
 
+#if DOPAMINE_HAS_KRW
 void jbinfo_initialize_boot_constants(void)
 {
 	gSystemInfo.kernelConstant.base     = kconstant(staticBase) + gSystemInfo.kernelConstant.slide;
@@ -288,6 +289,7 @@ void jbinfo_initialize_boot_constants(void)
 	gSystemInfo.kernelConstant.physSize = kread64(ksymbol(gPhysSize));
 	gSystemInfo.kernelConstant.cpuTTEP  = kread64(ksymbol(cpu_ttep));
 }
+#endif
 
 xpc_object_t jbinfo_get_serialized(void)
 {

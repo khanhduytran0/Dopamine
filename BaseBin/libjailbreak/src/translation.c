@@ -20,6 +20,7 @@ struct tt_level arm_tt_level[4];
 #define PTOV_TABLE_SIZE 8
 uint64_t phystokv(uint64_t pa)
 {
+#if DOPAMINE_HAS_KRW
 	struct ptov_table_entry {
 		uint64_t pa;
 		uint64_t va;
@@ -34,10 +35,15 @@ uint64_t phystokv(uint64_t pa)
 	}
 
 	return pa - kconstant(physBase) + kconstant(virtBase);
+#else
+    errno = 1043;
+    return 0;
+#endif
 }
 
 uint64_t vtophys_lvl(uint64_t tte_ttep, uint64_t va, uint64_t *leaf_level, uint64_t *leaf_tte_ttep)
 {
+#if DOPAMINE_HAS_KRW
 	errno = 0;
 	const uint64_t ROOT_LEVEL = PMAP_TT_L1_LEVEL;
 	const uint64_t LEAF_LEVEL = *leaf_level;
@@ -94,6 +100,10 @@ uint64_t vtophys_lvl(uint64_t tte_ttep, uint64_t va, uint64_t *leaf_level, uint6
 	// If we end up here, it means we did not find a block mapping
 	// In this case, return the last page table address we traversed
 	return tte_ttep;
+#else
+    errno = 1043;
+    return 0;
+#endif
 }
 
 uint64_t vtophys(uint64_t tte_ttep, uint64_t va)
@@ -107,6 +117,7 @@ uint64_t kvtophys(uint64_t va)
 	return vtophys(kconstant(cpuTTEP), va);
 }
 
+#if DOPAMINE_HAS_KRW
 void libjailbreak_translation_init(void)
 {
 	// A9+: Kernel uses 16K pages
@@ -183,3 +194,4 @@ void libjailbreak_translation_init(void)
 	gPrimitives.phystokv = phystokv;
 	gPrimitives.vtophys  = vtophys;
 }
+#endif

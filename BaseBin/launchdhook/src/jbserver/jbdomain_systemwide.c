@@ -92,6 +92,7 @@ static int systemwide_get_boot_uuid(char **bootUUIDOut)
 	return 0;
 }
 
+#if DOPAMINE_HAS_KRW
 CS_SuperBlob *siginfo_resolve_superblob(struct siginfo *siginfo, int pid, int fd)
 {
 	if (!siginfo) return NULL;
@@ -133,6 +134,7 @@ CS_SuperBlob *siginfo_resolve_superblob(struct siginfo *siginfo, int pid, int fd
 
 	return superblob;
 }
+#endif
 
 int systemwide_trust_file(audit_token_t *processToken, int rfd, struct siginfo *siginfo, size_t siginfoSize)
 {
@@ -164,7 +166,8 @@ int systemwide_trust_file(audit_token_t *processToken, int rfd, struct siginfo *
 			return 0;
 		}
 	}
-
+    
+#if DOPAMINE_HAS_KRW
 	cdhash_t *cdhashes = NULL;
 	uint32_t cdhashesCount = 0;
 
@@ -192,6 +195,9 @@ int systemwide_trust_file(audit_token_t *processToken, int rfd, struct siginfo *
 		jb_trustcache_add_cdhashes(cdhashes, cdhashesCount);
 		free(cdhashes);
 	}
+#else
+#warning TODO: check if binary is signed with a cert or with adhoc flag
+#endif
 
 	close(fd);
 	return 0;
@@ -254,6 +260,7 @@ int systemwide_process_checkin(audit_token_t *processToken, char **rootPathOut, 
 	// Allow invalid pages
 	cs_allow_invalid(proc, fullyDebugged);
 
+#if DOPAMINE_HAS_KRW
 	// Fix setuid
 	struct stat sb;
 	if (stat(procPath, &sb) == 0) {
@@ -276,7 +283,11 @@ int systemwide_process_checkin(audit_token_t *processToken, char **rootPathOut, 
 			}
 		}
 	}
+#else
+    // On InternalUI devices, preboot permits setuid already
+#endif
 
+#if DOPAMINE_HAS_KRW
 	if (__builtin_available(iOS 16.0, *)) {
 		// In iOS 16+ there is a super annoying security feature called Protobox
 		// Amongst other things, it allows for a process to have a syscall mask
@@ -289,6 +300,7 @@ int systemwide_process_checkin(audit_token_t *processToken, char **rootPathOut, 
 		// Then we remove the filter to make other message ids accessible afterwards aswell
 		proc_remove_msg_filter(proc);
 	}
+#endif
 
 	// For whatever reason after SpringBoard has restarted, AutoFill and other stuff stops working
 	// The fix is to always also restart the kbd daemon alongside SpringBoard
@@ -308,6 +320,7 @@ int systemwide_process_checkin(audit_token_t *processToken, char **rootPathOut, 
 	}
 	// For the Dopamine app itself we want to give it a saved uid/gid of 0, unsandbox it and give it CS_PLATFORM_BINARY
 	// This is so that the buttons inside it can work when jailbroken, even if the app was not installed by TrollStore
+#if DOPAMINE_HAS_KRW
 	else if (string_has_suffix(procPath, "/Dopamine.app/Dopamine")) {
 		// svuid = 0, svgid = 0
 		uint64_t ucred = proc_ucred(proc);
@@ -319,6 +332,7 @@ int systemwide_process_checkin(audit_token_t *processToken, char **rootPathOut, 
 		// platformize
 		proc_csflags_set(proc, CS_PLATFORM_BINARY);
 	}
+#endif
 
 #ifdef __arm64e__
 	// On arm64e every image has a trust level associated with it
@@ -330,12 +344,19 @@ int systemwide_process_checkin(audit_token_t *processToken, char **rootPathOut, 
 		if (xpc_get_type(customTrustObj) == XPC_TYPE_STRING) {
 			const char *customTrustStr = xpc_string_get_string_ptr(customTrustObj);
 			uint32_t customTrust = pmap_cs_trust_string_to_int(customTrustStr);
+#if DOPAMINE_HAS_KRW
 			if (customTrust >= 2) {
 				uint64_t mainCodeDir = proc_find_main_binary_code_dir(proc);
 				if (mainCodeDir) {
 					kwrite32(mainCodeDir + koffsetof(pmap_cs_code_directory, trust), customTrust);
 				}
 			}
+#else
+#define CS_OPS_CLEARPLATFORM 13
+            if (customTrust < 8) { // customTrust < PMAP_CS_IN_LOADED_TRUST_CACHE
+                csops(pid, CS_OPS_CLEARPLATFORM, NULL, 0);
+            }
+#endif
 		}
 	}
 #endif
@@ -346,6 +367,7 @@ int systemwide_process_checkin(audit_token_t *processToken, char **rootPathOut, 
 
 int systemwide_fork_fix(audit_token_t *parentToken, uint64_t childPid)
 {
+#if DOPAMINE_HAS_KRW
 	int retval = 3;
 	uint64_t parentPid  = audit_token_to_pid(*parentToken);
 	uint64_t parentProc = proc_find(parentPid);
@@ -411,10 +433,15 @@ int systemwide_fork_fix(audit_token_t *parentToken, uint64_t childPid)
 	if (parentProc) proc_rele(parentProc);
 
 	return retval;
+#else
+#warning Check if we need forkfix on InternalUI
+    return 0;
+#endif
 }
 
 static int systemwide_cs_revalidate(audit_token_t *callerToken)
 {
+#if DOPAMINE_HAS_KRW
 	uint64_t callerPid = audit_token_to_pid(*callerToken);
 	if (callerPid > 0) {
 		uint64_t callerProc = proc_find(callerPid);
@@ -424,6 +451,9 @@ static int systemwide_cs_revalidate(audit_token_t *callerToken)
 		}
 	}
 	return -1;
+#else
+    return 0;
+#endif
 }
 
 struct jbserver_domain gSystemwideDomain = {

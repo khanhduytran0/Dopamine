@@ -323,6 +323,7 @@ int kwrite64(uint64_t va, uint64_t v)
 
 int kwrite_ptr(uint64_t kaddr, uint64_t pointer, uint16_t salt)
 {
+#if DOPAMINE_HAS_KRW
 #ifdef __arm64e__
 	if (!gPrimitives.kexec || !kgadget(pacda)) return -1;
 	kwrite64(kaddr, kptr_sign(kaddr, pointer, salt));
@@ -330,6 +331,9 @@ int kwrite_ptr(uint64_t kaddr, uint64_t pointer, uint16_t salt)
 	kwrite64(kaddr, pointer);
 #endif
 	return 0;
+#else
+    return -1;
+#endif
 }
 
 int kwrite32(uint64_t va, uint32_t v)
@@ -399,6 +403,7 @@ int kfree(uint64_t addr, uint64_t size)
 
 bool is_kcall_available(void)
 {
+#if DOPAMINE_HAS_KRW
 #ifdef __arm64e__
 	return jbinfo(usesPACBypass);
 #else
@@ -406,5 +411,8 @@ bool is_kcall_available(void)
 		return false;
 	}
 	return true;
+#endif
+#else
+    return false;
 #endif
 }

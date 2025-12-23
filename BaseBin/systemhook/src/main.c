@@ -98,6 +98,7 @@ void *dyld_dlsym_hook(void *dyld, void *handle, const char *name)
 	__attribute__((musttail)) return dyld_dlsym_orig(dyld, handle, name);
 }
 
+#if DOPAMINE_HAS_KRW
 int ptrace_hook(int request, pid_t pid, caddr_t addr, int data)
 {
     if (request == PT_ATTACHEXC || request == PT_ATTACH) {
@@ -120,6 +121,7 @@ int ptrace_hook(int request, pid_t pid, caddr_t addr, int data)
 
 	return r;
 }
+#endif
 
 #ifndef __arm64e__
 
@@ -374,6 +376,7 @@ __attribute__((constructor)) static void initializer(void)
 			dlopen(JBROOT_PATH("/basebin/watchdoghook.dylib"), RTLD_NOW);
 		}
 
+#if DOPAMINE_HAS_KRW
 		// ptrace hook to allow attaching a debugger to processes that systemhook did not inject into
 		// e.g. allows attaching debugserver to an app where tweak injection has been disabled via choicy
 		// since we want to keep hooks minimal and debugserver is the only thing I can think of that would
@@ -382,6 +385,7 @@ __attribute__((constructor)) static void initializer(void)
 		if (string_has_suffix(gExecutablePath, "/debugserver")) {
 			litehook_hook_function(ptrace, ptrace_hook);
 		}
+#endif
 
 #ifndef __arm64e__
 		// On arm64, writing to executable pages removes CS_VALID from the csflags of the process

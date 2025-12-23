@@ -28,6 +28,7 @@ int jbupdate_basebin(const char *basebinTarPath)
 		}
 		NSString *tmpBasebinPath = [tmpExtractionPath stringByAppendingPathComponent:@"basebin"];
 
+#if DOPAMINE_HAS_KRW
 		// Update basebin trustcache
 		NSString *trustcachePath = [tmpBasebinPath stringByAppendingPathComponent:@"basebin.tc"];
 		if (![[NSFileManager defaultManager] fileExistsAtPath:trustcachePath]) return 3;
@@ -45,6 +46,7 @@ int jbupdate_basebin(const char *basebinTarPath)
 		else {
 			[[NSFileManager defaultManager] removeItemAtPath:trustcachePath error:nil];
 		}
+#endif
 
 		// Replace basebin content
 		NSArray *newBasebinContents = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:tmpBasebinPath error:nil];
@@ -200,9 +202,11 @@ void jbupdate_finalize_stage2(const char *prevVersion, const char *newVersion)
 		// Set it during jbupdate if prev version is <2.1 and new version is >=2.1
 		gSystemInfo.jailbreakSettings.markAppsAsDebugged = true;
 
+#if DOPAMINE_HAS_KRW
 #ifndef __arm64e__
 		// Initialize kcall only after we have the offsets required for it
 		arm64_kcall_init();
+#endif
 #endif
 	}
 
@@ -214,6 +218,7 @@ void jbupdate_finalize_stage2(const char *prevVersion, const char *newVersion)
 		abort_with_reason(7, 1, msg, 0);
 	}
 
+#if DOPAMINE_HAS_KRW
 	// Update dyld trustcache
 	cdhash_t *cdhashes = NULL;
 	uint32_t cdhashesCount = 0;
@@ -243,6 +248,7 @@ void jbupdate_finalize_stage2(const char *prevVersion, const char *newVersion)
 
 		free(dyldTCFile);
 	}
+#endif
 
 	JBFixMobilePermissions();
 }

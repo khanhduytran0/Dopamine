@@ -5,7 +5,7 @@ CFLAGS = -framework Foundation -framework CoreServices -framework Security -I../
 LDFLAGS = -dynamiclib -rpath @loader_path/fallback -L../.build -L../_external/lib -ljailbreak -lellekit -lbsm
 
 sign: $(TARGET)
-	@ldid -S $^
+	@ldid -Cadhoc -S $^
 
 $(TARGET): $(wildcard src/*.m src/*.c src/jbserver/*.c ../systemhook/src/common.c ../systemhook/src/envbuf.c)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^

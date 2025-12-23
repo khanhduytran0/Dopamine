@@ -86,6 +86,7 @@ bool macho_parse_code_signature(MachO *macho, cdhash_t cdhashOut)
 	return isAdhocSigned;
 }
 
+#if DOPAMINE_HAS_KRW
 void file_collect_untrusted_cdhashes(int fd, cdhash_t **cdhashesOut, uint32_t *cdhashCountOut)
 {
 	MemoryStream *s = file_stream_init_from_file_descriptor(fd, 0, FILE_STREAM_SIZE_AUTO, 0);
@@ -125,3 +126,4 @@ void file_collect_untrusted_cdhashes_by_path(const char *path, cdhash_t **cdhash
 	file_collect_untrusted_cdhashes(fd, cdhashesOut, cdhashCountOut);
 	close(fd);
 }
+#endif

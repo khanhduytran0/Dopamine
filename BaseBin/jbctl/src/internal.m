@@ -5,6 +5,7 @@
 
 SInt32 CFUserNotificationDisplayAlert(CFTimeInterval timeout, CFOptionFlags flags, CFURLRef iconURL, CFURLRef soundURL, CFURLRef localizationURL, CFStringRef alertHeader, CFStringRef alertMessage, CFStringRef defaultButtonTitle, CFStringRef alternateButtonTitle, CFStringRef otherButtonTitle, CFOptionFlags *responseFlags) API_AVAILABLE(ios(3.0));
 
+#if DOPAMINE_HAS_KRW
 void execute_unsandboxed(void (^block)(void))
 {
 	uint64_t credBackup = 0;
@@ -90,6 +91,9 @@ int fakelib_set_mounted(bool mounted)
 	}
 	return r;
 }
+#else
+#warning TODO: pass mount/unmount to launchd
+#endif
 
 int jbctl_handle_internal(const char *command, int argc, char* argv[])
 {
@@ -147,7 +151,11 @@ int jbctl_handle_internal(const char *command, int argc, char* argv[])
 				return -1;
 			}
 
+#if DOPAMINE_HAS_KRW
 			return protection_set_active(toSet);
+#else
+            return 0;
+#endif
 		}
 		return -1;
 	}
@@ -164,12 +172,20 @@ int jbctl_handle_internal(const char *command, int argc, char* argv[])
 				return -1;
 			}
 
+#if DOPAMINE_HAS_KRW
 			return fakelib_set_mounted(toMount);
+#else
+            // Since we cannot mount without stealing cred, we directly serve files via globally-accessible dir
+            // /private/preboot/Cryptexes/dopamine-XXXXX/procursus/basebin/.fakelib
+            return 0;
+#endif
 		}
 		return -1;
 	}
 	else if (!strcmp(command, "startup")) {
+#if DOPAMINE_HAS_KRW
 		protection_set_active(true);
+#endif
 		char *panicMessage = NULL;
 		if (jbclient_watchdog_get_last_userspace_panic(&panicMessage) == 0) {
 			NSString *printMessage = [NSString stringWithFormat:@"Dopamine has protected you from a userspace panic by temporarily disabling tweak injection and triggering a userspace reboot instead. A log is available under Analytics in the Preferences app. You can reenable tweak injection in the Dopamine app.\n\nPanic message: \n%s", panicMessage];

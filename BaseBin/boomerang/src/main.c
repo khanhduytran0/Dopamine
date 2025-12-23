@@ -11,6 +11,7 @@
 
 int main(int argc, char* argv[])
 {
+#if DOPAMINE_HAS_KRW
 	setsid();
 
 	__block bool launchdHasPhysrw = false;
@@ -59,4 +60,7 @@ int main(int argc, char* argv[])
 	// Now make our server run so that launchd can get everything back
 	dispatch_main();
 	return 0;
+#else
+    return -1;
+#endif
 }

@@ -17,6 +17,7 @@ int posix_spawnattr_set_registered_ports_np(posix_spawnattr_t *__restrict attr, 
 #define JB_PRIMITIVE_STORAGE_RETRIEVE_PHYSRW 1
 #define JB_PRIMITIVE_STORAGE_RETRIEVE_KCALL 2
 
+#if DOPAMINE_HAS_KRW
 void boomerang_stashPrimitives()
 {
 	dispatch_semaphore_t boomerangDone = dispatch_semaphore_create(0);
@@ -57,9 +58,11 @@ void boomerang_stashPrimitives()
 	snprintf(pidBuf, 10, "%d", boomerangPid);
 	setenv("BOOMERANG_PID", pidBuf, 1);
 }
+#endif
 
 int boomerang_recoverPrimitives(bool firstRetrieval, bool shouldEndBoomerang)
 {
+#if DOPAMINE_HAS_KRW
 	// Mach port to boomerang should be stored in our registeredPorts[2]
 	// Use it to recover primitives, afterwards replace it with MACH_PORT_NULL to make launchd happy
 	mach_port_t *registeredPorts;
@@ -97,6 +100,9 @@ int boomerang_recoverPrimitives(bool firstRetrieval, bool shouldEndBoomerang)
 			waitpid(boomerangPid, &boomerangStatus, 0);
 		}
 	}
+#else
+    jbclient_initialize_primitives_internal(false);
+#endif
 
 	return 0;
 }

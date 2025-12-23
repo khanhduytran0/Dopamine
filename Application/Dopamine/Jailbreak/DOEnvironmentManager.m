@@ -105,7 +105,11 @@ int reboot3(uint64_t flags, ...);
 - (void)locateJailbreakRoot
 {
     if (!gSystemInfo.jailbreakInfo.rootPath) {
+#if DOPAMINE_HAS_KRW
         NSString *activePrebootPath = [self activePrebootPath];
+#else
+        NSString *activePrebootPath = @"/private/preboot/Cryptexes";
+#endif
         
         NSString *randomizedJailbreakPath;
         
@@ -165,7 +169,11 @@ int reboot3(uint64_t flags, ...);
     if (!gSystemInfo.jailbreakInfo.rootPath || _bootstrapNeedsMigration) {
         [_bootstrapper ensurePrivatePrebootIsWritable];
 
+#if DOPAMINE_HAS_KRW
         NSString *activePrebootPath = [self activePrebootPath];
+#else
+        NSString *activePrebootPath = @"/private/preboot/Cryptexes";
+#endif
 
         NSString *characterSet = @"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         NSUInteger stringLen = 6;
@@ -218,6 +226,7 @@ int reboot3(uint64_t flags, ...);
 
 - (BOOL)isInstalledThroughTrollStore
 {
+#if DOPAMINE_HAS_KRW
     static BOOL trollstoreInstallation = NO;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
@@ -225,10 +234,14 @@ int reboot3(uint64_t flags, ...);
         trollstoreInstallation = [[NSFileManager defaultManager] fileExistsAtPath:trollStoreMarkerPath];
     });
     return trollstoreInstallation;
+#else
+    return YES;
+#endif
 }
 
 - (BOOL)isJailbroken
 {
+#if DOPAMINE_HAS_KRW
     static BOOL jailbroken = NO;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
@@ -237,6 +250,9 @@ int reboot3(uint64_t flags, ...);
         jailbroken = csFlags & CS_PLATFORM_BINARY;
     });
     return jailbroken;
+#else
+    return !access("/usr/lib/systemhook.dylib", F_OK);
+#endif
 }
 
 - (NSString *)jailbrokenVersion
@@ -616,6 +632,7 @@ int reboot3(uint64_t flags, ...);
 
 - (BOOL)isSupported
 {
+#if DOPAMINE_HAS_KRW
     //cpu_subtype_t cpuFamily = 0;
     //size_t cpuFamilySize = sizeof(cpuFamily);
     //sysctlbyname("hw.cpufamily", &cpuFamily, &cpuFamilySize, NULL, 0);
@@ -631,6 +648,9 @@ int reboot3(uint64_t flags, ...);
     }
     
     return false;
+#else
+    return true;
+#endif
 }
 
 - (BOOL)deviceSupportsFaceID

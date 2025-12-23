@@ -27,6 +27,7 @@ static int root_get_sysinfo(xpc_object_t *sysInfoOut)
 
 static int root_steal_ucred(audit_token_t *clientToken, uint64_t ucred, uint64_t *orgUcred)
 {
+#if DOPAMINE_HAS_KRW
 	uint64_t kernproc = proc_find(0);
 	uint64_t kern_ucred = proc_ucred(kernproc);
 	if (!ucred) {
@@ -58,6 +59,7 @@ static int root_steal_ucred(audit_token_t *clientToken, uint64_t ucred, uint64_t
 		mac_label_set(kread_ptr(kern_ucred + koffsetof(ucred, label)), 0, -1);
 	}
 #endif
+#endif
 	return 0;
 }
 
@@ -65,6 +67,7 @@ static int root_set_mac_label(audit_token_t *clientToken, uint64_t slot, uint64_
 {
 	if (slot >= 3) return -1;
 
+#if DOPAMINE_HAS_KRW
 	pid_t pid = audit_token_to_pid(*clientToken);
 	uint64_t proc = proc_find(pid);
 	if (!proc) return -1;
@@ -77,23 +80,34 @@ static int root_set_mac_label(audit_token_t *clientToken, uint64_t slot, uint64_
 	mac_label_set(label, slot, newLabel);
 
 	return 0;
+#else
+    return -1;
+#endif
 }
 
 static int root_trustcache_info(xpc_object_t *infoOut)
 {
+#if DOPAMINE_HAS_KRW
 	*infoOut = jb_trustcache_info();
+#endif
 	return 0;
 }
 
 static int root_trustcache_add_cdhash(uint8_t *cdhashData, size_t cdhashLen)
 {
 	if (cdhashLen != CS_CDHASH_LEN) return -1;
+#if DOPAMINE_HAS_KRW
 	return jb_trustcache_add_cdhashes((cdhash_t *)cdhashData, 1);
+#else
+    return -1;
+#endif
 }
 
 static int root_trustcache_clear(void)
 {
+#if DOPAMINE_HAS_KRW
 	jb_trustcache_clear();
+#endif
 	return 0;
 }
 

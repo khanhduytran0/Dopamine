@@ -1,3 +1,4 @@
+#if DOPAMINE_HAS_KRW
 #import "info.h"
 #import "primitives.h"
 #import "translation.h"
@@ -218,3 +219,4 @@ void libjailbreak_IOSurface_primitives_init(void)
 		gPrimitives.kalloc_local  = IOSurface_kalloc_local;
 	}
 }
+#endif

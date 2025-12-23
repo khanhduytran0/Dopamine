@@ -5,7 +5,7 @@ CFLAGS = -I../.include -I./src -I../_external/modules/litehook/src -isysroot $(s
 LDFLAGS = -dynamiclib
 
 sign: $(TARGET)
-	@ldid -S $^
+	@ldid -Cadhoc -S $^
 
 $(TARGET): $(wildcard src/*.c src/*.m ../libjailbreak/src/jbclient_*.c ../_external/modules/litehook/src/*.c)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
