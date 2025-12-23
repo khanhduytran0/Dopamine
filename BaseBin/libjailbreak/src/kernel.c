@@ -167,8 +167,8 @@ int pmap_cs_allow_invalid(uint64_t pmap)
 
 int cs_allow_invalid(uint64_t proc, bool emulateFully)
 {
-#if DOPAMINE_HAS_KRW
 	if (proc) {
+#if DOPAMINE_HAS_KRW
 		uint64_t task = proc_task(proc);
 		if (task) {
 			uint64_t vm_map = kread_ptr(task + koffsetof(task, map));
@@ -201,18 +201,19 @@ int cs_allow_invalid(uint64_t proc, bool emulateFully)
 				}
 			}
 		}
-	}
 #else
-    // spawn jbctl to allow invalid code signing for us, since we cannot do this in launchd
-    uint32_t csFlags = 0;
-    csops(proc, CS_OPS_STATUS, &csFlags, sizeof(csFlags));
-    if (!(csFlags & CS_DEBUGGED)) {
-        char *envp[] = { "DOPAMINE_EXEMPT_DYLDHOOK=1", NULL };
-        char pidStr[16];
-        snprintf(pidStr, sizeof(pidStr), "%d", proc);
-        return exec_cmd_env(envp, JBROOT_PATH("/basebin/jbctl"), "proc_set_debugged", pidStr, NULL);
-    }
+        // spawn jbctl to allow invalid code signing for us, since we cannot do this in launchd
+        uint32_t csFlags = 0;
+        csops(proc, CS_OPS_STATUS, &csFlags, sizeof(csFlags));
+        if (!(csFlags & CS_DEBUGGED)) {
+            char *envp[] = { "DOPAMINE_EXEMPT_DYLDHOOK=1", NULL };
+            char pidStr[8];
+            snprintf(pidStr, sizeof(pidStr), "%d", proc);
+            int ret = exec_cmd_env(envp, JBROOT_PATH("/basebin/jbctl"), "proc_set_debugged", pidStr, NULL);
+            return ret;
+        }
 #endif
+	}
 	return 0;
 }
 

@@ -215,6 +215,11 @@ bool should_enable_tweaks(void)
 	const char *tweaksDisabledPathSuffixes[] = {
 		// System binaries
 		"/usr/libexec/xpcproxy",
+#if !DOPAMINE_HAS_KRW
+        // FIXME: on InternalUI devices we cannot disable syscall filtering, however it seems there are only very few processes crashing because of it.
+        // Boot arg -disable_syscallfilter=1 didn't help either, as it made keybagd panic with "syscall mask mismatch: unix-syscall"
+        "/System/Library/PrivateFrameworks/IDS.framework/identityservicesd.app/identityservicesd",
+#endif
 
 		// Dopamine app itself (jailbreak detection bypass tweaks can break it)
 		"Dopamine.app/Dopamine",

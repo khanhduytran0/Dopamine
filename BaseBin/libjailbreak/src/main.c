@@ -9,6 +9,10 @@
 #include "kcall_Fugu14.h"
 #include "kcall_arm64.h"
 #include <xpc/xpc.h>
+#if !DOPAMINE_HAS_KRW
+#include <assert.h>
+#include <dirent.h>
+#endif
 
 int jbclient_initialize_primitives_internal(bool physrwPTE)
 {
@@ -48,14 +52,19 @@ int jbclient_initialize_primitives_internal(bool physrwPTE)
 
 	return -1;
 #else
-    jbinfo(rootPath) = getenv("DOPAMINE_JBROOT");
-    unsetenv("DOPAMINE_JBROOT");
-    if (!jbinfo(rootPath)) {
-        char rootPath[PATH_MAX];
-        strcpy(rootPath, "/var/jb");
-        readlink(rootPath, rootPath, sizeof(rootPath)-1);
-        jbinfo(rootPath) = strdup(rootPath);
+    char *activePrebootPath = "/private/preboot/Cryptexes";
+    char randomizedJailbreakPath[PATH_MAX];
+    DIR *d = opendir(activePrebootPath);
+    assert(d != NULL);
+    struct dirent *dir;
+    while ((dir = readdir(d)) != NULL) {
+        if(!strncmp(dir->d_name, "dopamine", 8)) {
+            snprintf(randomizedJailbreakPath, sizeof(randomizedJailbreakPath), "%s/%s/procursus", activePrebootPath, dir->d_name);
+            break;
+        }
     }
+    closedir(d);
+    jbinfo(rootPath) = strdup(randomizedJailbreakPath);
     jbsetting(markAppsAsDebugged) = true;
     jbsetting(jetsamMultiplier) = 2.0;
     return 0;

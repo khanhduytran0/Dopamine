@@ -40,7 +40,6 @@ __attribute__((constructor)) static void initializer(void)
             }
         }
         closedir(d);
-        setenv("DOPAMINE_JBROOT", strdup(randomizedJailbreakPath), 1);
         snprintf(launchdhookPath, sizeof(launchdhookPath), "%s/basebin/launchdhook.dylib", randomizedJailbreakPath);
     }
     
