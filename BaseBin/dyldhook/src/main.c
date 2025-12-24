@@ -5,6 +5,17 @@
 #include <string.h>
 #include <sandbox.h>
 #include <libjailbreak/jbclient_mach.h>
+#if !DOPAMINE_HAS_KRW
+#include <libjailbreak/codesign.h>
+#include <signal.h>
+#define    PT_TRACE_ME    0    /* child declares it's being traced */
+#define    PT_KILL        8    /* kill the child process */
+#define    PT_DETACH    11    /* stop tracing a process */
+#define PT_ATTACHEXC    14    /* attach to running process with signal exception */
+extern int ptrace(int request, pid_t pid, caddr_t addr, int data);
+#define WAIT_ANY (-1)
+extern int __wait4(pid_t, int *, int , void *rusage);
+#endif
 
 #include "dyld.h"
 #include "dyld_jbinfo.h"
@@ -82,38 +93,49 @@ void dyldhook_init(uintptr_t kernelParams)
         ((char *)insertLibrariesVar)[0] = '\0';
         return;
     }
-    // FIXME: we don't have a systemwide posix_spawn/exec hook so instead we put a blacklist here
-    // might probably just fix fork later, this is quite annoying workaround
-    const char *processBlacklist[] = {
-        "/bin/bash",
-        "/bin/dash",
-        "/bin/sh",
-        "/bin/zsh",
-        "/sbin/mount",
-        "/usr/bin/login",
-        "/usr/local/sbin/sshd",
-        // Fix Sileo
-        "/var/jb/bin/dash",
-        "/var/jb/bin/sh",
+    
+    // FIXME: we don't have fork fix so instead we exclude CLI tools from hook
+    char **apple = envp;
+    while (*apple != NULL) { apple++; }
+    const char *executablePath = _simple_getenv(&apple[1], "executable_path");
+    char *prefixesBlacklist[] = {
+        "/bin",
+        "/sbin",
+        "/usr/bin",
+        "/usr/local/bin",
     };
-    char **argv = (char **)(kernelParams + sizeof(void *) + sizeof(argc));
-    size_t blacklistCount = sizeof(processBlacklist) / sizeof(processBlacklist[0]);
-    for (size_t i = 0; i < blacklistCount; i++) {
-        if (!strcmp(processBlacklist[i], argv[0])) {
+    size_t prefixesCount = sizeof(prefixesBlacklist) / sizeof(prefixesBlacklist[0]);
+    for (size_t i = 0; i < prefixesCount; i++) {
+        if (!strncmp(prefixesBlacklist[i], executablePath, strlen(prefixesBlacklist[i]))) {
             ((char *)insertLibrariesVar)[0] = '\0';
             return;
         }
     }
-    // Fix Sileo
-    char *prefixesBlacklist[] = {
-        "/var/jb/usr/bin",
-        "/var/jb/bin",
+    char *suffixesBlacklist[] = {
+        "/procursus/bin",
+        "/procursus/usr/bin",
+        "/sbin/sshd",
     };
-    size_t prefixesCount = sizeof(prefixesBlacklist) / sizeof(prefixesBlacklist[0]);
-    for (size_t i = 0; i < prefixesCount; i++) {
-        if (!strncmp(prefixesBlacklist[i], argv[0], strlen(prefixesBlacklist[i]))) {
+    size_t suffixesCount = sizeof(suffixesBlacklist) / sizeof(suffixesBlacklist[0]);
+    for (size_t i = 0; i < suffixesCount; i++) {
+        if (strstr(executablePath, suffixesBlacklist[i])) {
             ((char *)insertLibrariesVar)[0] = '\0';
             return;
+        }
+    }
+    
+    // Fast path JIT enabling for unsandboxed processes
+    uint32_t csFlags = 0;
+    csops(getpid(), CS_OPS_STATUS, &csFlags, sizeof(csFlags));
+    if (!(csFlags & CS_DEBUGGED)) {
+        int pid = fork();
+        if (pid == 0) {
+            ptrace(PT_TRACE_ME, 0, 0, 0);
+            return;
+        } else if (pid > 0) {
+            __wait4(pid, NULL, WUNTRACED, NULL);
+            kill(pid, SIGKILL);
+            //ptrace(PT_DETACH, pid, NULL, 0);
         }
     }
 #endif

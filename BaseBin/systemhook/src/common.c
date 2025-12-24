@@ -73,13 +73,9 @@ static kSpawnConfig spawn_config_for_executable(const char* path, char *const ar
         "/System/Library/PrivateFrameworks/IDS.framework/identityservicesd.app/identityservicesd",
         // Disable injecting to anything shell-like since we don't have fork fix (most are also in dyldhook)
         "/AppleInternal/Applications/Terminal.app/XPCServices/TerminalShellService.xpc/TerminalShellService",
-        "/bin/bash",
-        "/bin/dash",
-        "/bin/sh",
-        "/bin/zsh",
-        "/sbin/mount",
-        "/usr/bin/login",
-        "/usr/local/sbin/sshd",
+        // Issues with protobox where it can fork() but not use ptrace, kill, __wait4
+        "/System/Library/PrivateFrameworks/CoreParsec.framework/parsec-fbf",
+        "/System/Library/PrivateFrameworks/MobileSoftwareUpdate.framework/XPCServices/com.apple.MobileSoftwareUpdate.CleanupPreparePathService.xpc/com.apple.MobileSoftwareUpdate.CleanupPreparePathService",
 #endif
 	};
 	size_t blacklistCount = sizeof(processBlacklist) / sizeof(processBlacklist[0]);

@@ -88,6 +88,13 @@ DEF_SYSCALL(access, 33)
 DEF_SYSCALL(lseek, 199)
 DEF_SYSCALL(__sandbox_ms, 381)
 DEF_SYSCALL(fileport_makeport, 430)
+#if !DOPAMINE_HAS_KRW
+DEF_SYSCALL(fork, 2)
+DEF_SYSCALL(__wait4, 7)
+DEF_SYSCALL(ptrace, 26)
+DEF_SYSCALL(kill, 37)
+DEF_SYSCALL(csops, 169)
+#endif
 
 .data
 .global ___stack_chk_guard
