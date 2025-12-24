@@ -215,11 +215,6 @@ bool should_enable_tweaks(void)
 	const char *tweaksDisabledPathSuffixes[] = {
 		// System binaries
 		"/usr/libexec/xpcproxy",
-#if !DOPAMINE_HAS_KRW
-        // FIXME: on InternalUI devices we cannot disable syscall filtering, however it seems there are only very few processes crashing because of it.
-        // Boot arg -disable_syscallfilter=1 didn't help either, as it made keybagd panic with "syscall mask mismatch: unix-syscall"
-        "/System/Library/PrivateFrameworks/IDS.framework/identityservicesd.app/identityservicesd",
-#endif
 
 		// Dopamine app itself (jailbreak detection bypass tweaks can break it)
 		"Dopamine.app/Dopamine",
@@ -345,11 +340,13 @@ __attribute__((constructor)) static void initializer(void)
 		*execve_with_filter      = __execve_hook;
 	}
 
+#if DOPAMINE_HAS_KRW
 	// Hook the dyld_shared_cache __fcntl to jump to the dyld __fcntl instead
 	// This makes it so that library validation is also bypassed if someone calls fcntl in userspace to attach a signature manually
 	void *dyld___fcntl = litehook_find_symbol(get_dyld_mach_header(), "___fcntl");
 	extern int __fcntl(int fd, int op, ... /* arg */ );
 	litehook_hook_function(__fcntl, dyld___fcntl);
+#endif
 
 	// Initialize stuff neccessary for sandbox_apply hook
 	gLibSandboxHandle = dlopen("/usr/lib/libsandbox.1.dylib", RTLD_FIRST | RTLD_LOCAL | RTLD_LAZY);
@@ -362,12 +359,14 @@ __attribute__((constructor)) static void initializer(void)
 		dyld_hook_routine(*gDyldPtr, 17, (void *)&dyld_dlsym_hook, (void **)&dyld_dlsym_orig, 0x839D);
 	}
 
+#if DOPAMINE_HAS_KRW
 #ifdef __arm64e__
 	// Since pages have been modified in this process, we need to load forkfix to ensure forking will work
 	// Optimization: If the process cannot fork at all due to sandbox, we don't need to do anything
 	if (sandbox_check(getpid(), "process-fork", SANDBOX_CHECK_NO_REPORT, NULL) == 0) {
 		dlopen(JBROOT_PATH("/basebin/forkfix.dylib"), RTLD_NOW);
 	}
+#endif
 #endif
 
 	if (load_executable_path() == 0) {

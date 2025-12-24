@@ -601,7 +601,6 @@ NSDictionary* dumpEntitlementsFromBinaryAtPath(NSString *binaryPath)
     // Now that fakelib is up, we want to make systemhook inject into any binary we spawn
     setenv("DYLD_INSERT_LIBRARIES", "/usr/lib/systemhook.dylib", 1);
 #else
-    // Now that fakelib is up, we want to make systemhook inject into any binary we spawn
     setenv("DYLD_INSERT_LIBRARIES", "/var/jb/basebin/systemhook.dylib", 1);
 #endif
     return nil;
@@ -801,12 +800,8 @@ NSDictionary* dumpEntitlementsFromBinaryAtPath(NSString *binaryPath)
 
 - (void)finalize
 {
-#if DOPAMINE_HAS_KRW
     [[DOUIManager sharedInstance] sendLog:DOLocalizedString(@"Rebooting Userspace") debug:NO];
     [[DOEnvironmentManager sharedManager] rebootUserspace];
-#else
-    // TODO
-#endif
 }
 
 @end

@@ -67,6 +67,19 @@ static kSpawnConfig spawn_config_for_executable(const char* path, char *const ar
 		"/System/Library/PrivateFrameworks/DataAccess.framework/Support/dataaccessd",
 		"/System/Library/PrivateFrameworks/IDSBlastDoorSupport.framework/XPCServices/IDSBlastDoorService.xpc/IDSBlastDoorService",
 		"/System/Library/PrivateFrameworks/MessagesBlastDoorSupport.framework/XPCServices/MessagesBlastDoorService.xpc/MessagesBlastDoorService",
+#if !DOPAMINE_HAS_KRW
+        // FIXME: on InternalUI devices we cannot disable syscall filtering, however it seems there are only very few processes crashing because of it.
+        // Boot arg -disable_syscallfilter=1 didn't help either, as it made keybagd panic with "syscall mask mismatch: unix-syscall"
+        "/System/Library/PrivateFrameworks/IDS.framework/identityservicesd.app/identityservicesd",
+        // Disable injecting to anything shell-like since we don't have fork fix
+        "/AppleInternal/Applications/Terminal.app/XPCServices/TerminalShellService.xpc/TerminalShellService",
+        "/bin/bash",
+        "/bin/dash",
+        "/bin/sh",
+        "/bin/zsh",
+        "/usr/bin/login",
+        "/usr/local/sbin/sshd",
+#endif
 	};
 	size_t blacklistCount = sizeof(processBlacklist) / sizeof(processBlacklist[0]);
 	for (size_t i = 0; i < blacklistCount; i++)
