@@ -71,12 +71,13 @@ static kSpawnConfig spawn_config_for_executable(const char* path, char *const ar
         // FIXME: on InternalUI devices we cannot disable syscall filtering, however it seems there are only very few processes crashing because of it.
         // Boot arg -disable_syscallfilter=1 didn't help either, as it made keybagd panic with "syscall mask mismatch: unix-syscall"
         "/System/Library/PrivateFrameworks/IDS.framework/identityservicesd.app/identityservicesd",
-        // Disable injecting to anything shell-like since we don't have fork fix
+        // Disable injecting to anything shell-like since we don't have fork fix (most are also in dyldhook)
         "/AppleInternal/Applications/Terminal.app/XPCServices/TerminalShellService.xpc/TerminalShellService",
         "/bin/bash",
         "/bin/dash",
         "/bin/sh",
         "/bin/zsh",
+        "/sbin/mount",
         "/usr/bin/login",
         "/usr/local/sbin/sshd",
 #endif
@@ -86,6 +87,10 @@ static kSpawnConfig spawn_config_for_executable(const char* path, char *const ar
 	{
 		if (!strcmp(processBlacklist[i], path)) return 0;
 	}
+#if !DOPAMINE_HAS_KRW
+    // Disable injecting to WebContent since we cannot disable syscall filtering
+    if (strstr(path, "/com.apple.WebKit.WebContent")) return 0;
+#endif
 
 	return (kSpawnConfigInject | kSpawnConfigTrust);
 }

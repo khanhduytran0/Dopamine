@@ -82,6 +82,40 @@ void dyldhook_init(uintptr_t kernelParams)
         ((char *)insertLibrariesVar)[0] = '\0';
         return;
     }
+    // FIXME: we don't have a systemwide posix_spawn/exec hook so instead we put a blacklist here
+    // might probably just fix fork later, this is quite annoying workaround
+    const char *processBlacklist[] = {
+        "/bin/bash",
+        "/bin/dash",
+        "/bin/sh",
+        "/bin/zsh",
+        "/sbin/mount",
+        "/usr/bin/login",
+        "/usr/local/sbin/sshd",
+        // Fix Sileo
+        "/var/jb/bin/dash",
+        "/var/jb/bin/sh",
+    };
+    char **argv = (char **)(kernelParams + sizeof(void *) + sizeof(argc));
+    size_t blacklistCount = sizeof(processBlacklist) / sizeof(processBlacklist[0]);
+    for (size_t i = 0; i < blacklistCount; i++) {
+        if (!strcmp(processBlacklist[i], argv[0])) {
+            ((char *)insertLibrariesVar)[0] = '\0';
+            return;
+        }
+    }
+    // Fix Sileo
+    char *prefixesBlacklist[] = {
+        "/var/jb/usr/bin",
+        "/var/jb/bin",
+    };
+    size_t prefixesCount = sizeof(prefixesBlacklist) / sizeof(prefixesBlacklist[0]);
+    for (size_t i = 0; i < prefixesCount; i++) {
+        if (!strncmp(prefixesBlacklist[i], argv[0], strlen(prefixesBlacklist[i]))) {
+            ((char *)insertLibrariesVar)[0] = '\0';
+            return;
+        }
+    }
 #endif
 
 	// If all is well, do check-in right here before dyld_start!

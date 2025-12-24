@@ -92,6 +92,7 @@ int jbupdate_basebin(const char *basebinTarPath)
 
 void jbupdate_update_system_info(void)
 {
+#if DOPAMINE_HAS_KRW
 	@autoreleasepool {
 		// Load XPF
 		void *xpfHandle = dlopen("@loader_path/libxpf.dylib", RTLD_NOW);
@@ -170,6 +171,7 @@ void jbupdate_update_system_info(void)
 		jbinfo_initialize_dynamic_offsets(systemInfoXdict);
 		jbinfo_initialize_hardcoded_offsets();
 	}
+#endif
 }
 
 // Before primitives are retrieved
