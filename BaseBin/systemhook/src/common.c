@@ -76,6 +76,7 @@ static kSpawnConfig spawn_config_for_executable(const char* path, char *const ar
         // Issues with protobox where it can fork() but not use ptrace, kill, __wait4
         "/System/Library/PrivateFrameworks/CoreParsec.framework/parsec-fbf",
         "/System/Library/PrivateFrameworks/MobileSoftwareUpdate.framework/XPCServices/com.apple.MobileSoftwareUpdate.CleanupPreparePathService.xpc/com.apple.MobileSoftwareUpdate.CleanupPreparePathService",
+        "/usr/libexec/dprivacyd",
 #endif
 	};
 	size_t blacklistCount = sizeof(processBlacklist) / sizeof(processBlacklist[0]);

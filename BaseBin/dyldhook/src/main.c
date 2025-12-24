@@ -103,6 +103,8 @@ void dyldhook_init(uintptr_t kernelParams)
         "/sbin",
         "/usr/bin",
         "/usr/local/bin",
+        "/var/jb/bin",
+        "/var/jb/usr/bin",
     };
     size_t prefixesCount = sizeof(prefixesBlacklist) / sizeof(prefixesBlacklist[0]);
     for (size_t i = 0; i < prefixesCount; i++) {
