@@ -133,11 +133,12 @@ void dyldhook_init(uintptr_t kernelParams)
         int pid = fork();
         if (pid == 0) {
             ptrace(PT_TRACE_ME, 0, 0, 0);
+            kill(getpid(), SIGSTOP);
             return;
         } else if (pid > 0) {
             __wait4(pid, NULL, WUNTRACED, NULL);
+            ptrace(PT_DETACH, pid, NULL, 0);
             kill(pid, SIGKILL);
-            //ptrace(PT_DETACH, pid, NULL, 0);
         }
     }
 #endif
