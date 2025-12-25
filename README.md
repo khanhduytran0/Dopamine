@@ -1,6 +1,8 @@
 This is Dopamine fork for "AI" devices. It will not work on a prod. AI here does not mean Artificial/Apple Intelligence.
 
 ## Jailbreaking your "AI" device
+> [!WARNING] 
+> Not all iOS versions are tested. Currently 18.6 works and 17.5.1 causes a bootloop which would require factory reset to recover.
 
 Before proceeding, ensure you have installed [TrollStore Lite](https://github.com/khanhduytran0/TrollStore/tree/ai#installing-trollstore-lite).
 
