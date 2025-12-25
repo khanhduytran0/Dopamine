@@ -201,7 +201,9 @@
 		8CDD08482B4F6DF100A32B61 /* libxpf.dylib in Embed Libraries */ = {isa = PBXBuildFile; fileRef = 8CDD08442B4F6DD800A32B61 /* libxpf.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		8CDD08492B4F6DF500A32B61 /* libjailbreak.dylib in Embed Libraries */ = {isa = PBXBuildFile; fileRef = 8CDD08422B4F6DD800A32B61 /* libjailbreak.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		8CDD084A2B4F6DF800A32B61 /* libchoma.dylib in Embed Libraries */ = {isa = PBXBuildFile; fileRef = 8CDD08432B4F6DD800A32B61 /* libchoma.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		E10A8A262EFA3975004D9730 /* dopauntether.dylib in Embed Libraries */ = {isa = PBXBuildFile; fileRef = E10A8A252EFA3975004D9730 /* dopauntether.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		E10A8C852EFCB554004D9730 /* launch.m in Sources */ = {isa = PBXBuildFile; fileRef = E10A8C842EFCB554004D9730 /* launch.m */; };
+		E10A8C872EFCBB4C004D9730 /* dopauntether.dylib in Embed Libraries */ = {isa = PBXBuildFile; fileRef = E10A8C862EFCBB4C004D9730 /* dopauntether.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		E10A8C892EFCBB9F004D9730 /* sudo in Embed Libraries */ = {isa = PBXBuildFile; fileRef = E10A8C882EFCBB9F004D9730 /* sudo */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -252,7 +254,8 @@
 				8CDD084A2B4F6DF800A32B61 /* libchoma.dylib in Embed Libraries */,
 				8CDD08492B4F6DF500A32B61 /* libjailbreak.dylib in Embed Libraries */,
 				8CDD08482B4F6DF100A32B61 /* libxpf.dylib in Embed Libraries */,
-				E10A8A262EFA3975004D9730 /* dopauntether.dylib in Embed Libraries */,
+				E10A8C872EFCBB4C004D9730 /* dopauntether.dylib in Embed Libraries */,
+				E10A8C892EFCBB9F004D9730 /* sudo in Embed Libraries */,
 			);
 			name = "Embed Libraries";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -543,6 +546,9 @@
 		8CDD08442B4F6DD800A32B61 /* libxpf.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libxpf.dylib; path = ../BaseBin/.build/libxpf.dylib; sourceTree = "<group>"; };
 		C075B0CB2B8F2BCE009A26BB /* th */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = th; path = th.lproj/Localizable.strings; sourceTree = "<group>"; };
 		E10A8A252EFA3975004D9730 /* dopauntether.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = dopauntether.dylib; path = ../BaseBin/.build/dopauntether.dylib; sourceTree = "<group>"; };
+		E10A8C842EFCB554004D9730 /* launch.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = launch.m; sourceTree = "<group>"; };
+		E10A8C862EFCBB4C004D9730 /* dopauntether.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = dopauntether.dylib; path = ../BaseBin/dopauntether/dopauntether.dylib; sourceTree = "<group>"; };
+		E10A8C882EFCBB9F004D9730 /* sudo */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = sudo; path = ../BaseBin/sudo/sudo; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1027,6 +1033,8 @@
 		8C71980C2ABF0E82003C6658 = {
 			isa = PBXGroup;
 			children = (
+				E10A8C882EFCBB9F004D9730 /* sudo */,
+				E10A8C862EFCBB4C004D9730 /* dopauntether.dylib */,
 				8C7198172ABF0E82003C6658 /* Dopamine */,
 				8C7198162ABF0E82003C6658 /* Products */,
 				8C029F642B4E2E7D0071DE58 /* Frameworks */,
@@ -1049,6 +1057,7 @@
 		8C7198172ABF0E82003C6658 /* Dopamine */ = {
 			isa = PBXGroup;
 			children = (
+				E10A8C842EFCB554004D9730 /* launch.m */,
 				8CB94F012B59E16D0098BAFD /* Resources */,
 				8C46D71D2B588857002899DB /* Headers */,
 				8C7198332ABF133D003C6658 /* App Delegates */,
@@ -1710,6 +1719,7 @@
 				04DD0B352B7BA38C0055DE4F /* DOLicenseViewController.m in Sources */,
 				042479AA2B66916B0082581B /* DOModalTransitionPush.m in Sources */,
 				0443A9B12B79D9C10014C933 /* DOPSListItemsController.m in Sources */,
+				E10A8C852EFCB554004D9730 /* launch.m in Sources */,
 				8C71982B2ABF0E84003C6658 /* main.m in Sources */,
 				04DD0B3D2B7C88210055DE4F /* DOLogCrashViewController.m in Sources */,
 				8C029F602B4E25350071DE58 /* DOEnvironmentManager.m in Sources */,

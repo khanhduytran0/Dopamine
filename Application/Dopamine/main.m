@@ -12,6 +12,12 @@
 #import <libjailbreak/info.h>
 #import <libjailbreak/jbclient_xpc.h>
 
+#if !DOPAMINE_HAS_KRW
+#import <libjailbreak/carboncopy.h>
+#define sudoPath "/private/preboot/Cryptexes/sudo"
+BOOL launchHaxx(NSArray *args);
+#endif
+
 int main(int argc, char * argv[]) {
     if (argc >= 3) {
         if (!strcmp(argv[1], "trollstore")) {
@@ -21,6 +27,16 @@ int main(int argc, char * argv[]) {
             else if (!strcmp(argv[2], "hide-jailbreak")) {
                 [[DOEnvironmentManager sharedManager] setJailbreakHidden:YES];
             }
+#if !DOPAMINE_HAS_KRW
+            else if (!strcmp(argv[2], "elevate-privilege")) {
+                const char *sudoPathTmp = (sudoPath ".tmp");
+                NSString *sudoPathInBundle = [[NSBundle mainBundle] pathForResource:@"sudo" ofType:nil];
+                carbonCopy(sudoPathInBundle, @(sudoPathTmp));
+                chown(sudoPathTmp, 0, 0);
+                chmod(sudoPathTmp, 04755);
+                rename(sudoPathTmp, sudoPath);
+            }
+#endif
             return 0;
         }
     }
@@ -41,6 +57,15 @@ int main(int argc, char * argv[]) {
 #if !DOPAMINE_HAS_KRW
     setuid(0);
     setgid(0);
+    if (getuid() != 0) {
+        // Elevate privillege
+        launchHaxx(@[@(argv[0]), @"trollstore", @"elevate-privilege"]);
+        while (access(sudoPath, F_OK) != 0) {
+            usleep(1000);
+        }
+        char *newArgv[] = {sudoPath, argv[0], NULL};
+        return execvp(newArgv[0], newArgv);
+    }
 #endif
     if ([DOEnvironmentManager sharedManager].isJailbroken) {
         setenv("PATH", "/sbin:/bin:/usr/sbin:/usr/bin:/var/jb/sbin:/var/jb/bin:/var/jb/usr/sbin:/var/jb/usr/bin", 1);

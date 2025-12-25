@@ -48,5 +48,9 @@
 	<true/>
 	<key>com.apple.developer.kernel.increased-memory-limit</key>
 	<true/>
+    <key>com.apple.private.xpc.launchd.job-manager</key>
+    <string>com.apple.runningboard</string>
+    <key>com.apple.private.xpc.persona-manager</key>
+    <true/>
 </dict>
 </plist>

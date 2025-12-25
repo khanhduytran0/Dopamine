@@ -6,7 +6,7 @@ Dopamine.ipa: build/Build/Products/Debug-iphoneos/Dopamine.app
 	@echo Ad-Hoc signing Dopamine
 	xattr -rc build/Build/Products/Debug-iphoneos/Dopamine.app
 	ldid -s build/Build/Products/Debug-iphoneos/Dopamine.app
-	ldid -Cadhoc -SDopamine/Dopamine.entitlements build/Build/Products/Debug-iphoneos/Dopamine.app/Dopamine
+	ldid -Cadhoc -SDopamine/Dopamine.entitlements build/Build/Products/Debug-iphoneos/Dopamine.app/{Dopamine,sudo}
 	find build/Build/Products/Debug-iphoneos/Dopamine.app -name '*.dylib' -exec ldid -Cadhoc -S {} \;
 	rm -rf Payload Dopamine.ipa
 	mkdir Payload
