@@ -10,6 +10,8 @@ dyldhook/dyldhook_merge.*.dylib
 systemhook/systemhook.dylib
 watchdoghook/watchdoghook.dylib
 forkfix/forkfix.dylib
+dopauntether/dopauntether.dylib
+sudo/sudo
 
 boomerang/boomerang
 jbctl/jbctl

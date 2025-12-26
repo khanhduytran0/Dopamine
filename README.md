@@ -1,4 +1,4 @@
-This is Dopamine fork for "AI" devices. It will not work on a prod. AI here does not mean Artificial/Apple Intelligence.
+This is Dopamine fork for "AI" devices. It will likely not work on what you have. AI here does not mean Artificial/Apple Intelligence.
 
 ## Jailbreaking your "AI" device
 > [!WARNING] 
@@ -9,7 +9,7 @@ Before proceeding, ensure you have installed [TrollStore Lite](https://github.co
 - Download the Dopamine IPA from Releases or compile it yourself
 - Install the IPA using TrollStore Lite
 - Append boot args `launchd_ignore_boot_task_failure=1 amfi_unrestrict_task_for_pid=1 launchdsuffix=dopamine wdt=-1` (this will be automated later)
-- Enable Live File System in Livability app > Advanced > boot-args and reboot your device. This is to make it possible to make jailbreak untethered
+- Enable Live File System using `nvram root-live-fs=1 allow-root-hash-mismatch=1` in Terminal
 - Open Dopamine app and tap "Jailbreak"
 - Reboot your device again. This is to make the kernel pick up the injected launchd
 

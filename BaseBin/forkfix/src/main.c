@@ -74,9 +74,6 @@ void child_fixup(void)
 	// Tell parent we are waiting for fixup now
 	char msg = ' ';
 	ffsys_write(childToParentPipe[1], &msg, sizeof(msg));
-#if !DOPAMINE_HAS_KRW
-    ffsys_kill(ffsys_getpid(), SIGSTOP);
-#endif
 
 	// Wait until parent completes fixup
 	ffsys_read(parentToChildPipe[0], &msg, sizeof(msg));
@@ -97,7 +94,6 @@ void parent_fixup(pid_t childPid)
 		abort();
 	}
 #else
-    ffsys___wait4(childPid, NULL, WUNTRACED, NULL);
     if (ffsys_ptrace(PT_ATTACHEXC, childPid, 0, 0) == 0) {
         while (ffsys_ptrace(PT_DETACH, childPid, 0, 0) != 0) {}
     }
@@ -137,10 +133,6 @@ __attribute__((visibility ("default"))) pid_t forkfix___fork(void)
 #if !DOPAMINE_HAS_KRW
     for (int i = 0; i < 1024*2; i += 2) {
         if (modified_pages[i] == 0) break;
-        if (pid == 0) {
-            uint32_t *modified_page_ptr = (uint32_t *)modified_pages[i];
-            modified_page_ptr[0] = modified_page_ptr[0];
-        }
         litehook_vm_protect(task_self_trap(), modified_pages[i], modified_pages[i+1], false, VM_PROT_READ | VM_PROT_EXECUTE);
     }
 #endif

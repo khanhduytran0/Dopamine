@@ -94,7 +94,7 @@ void dyldhook_init(uintptr_t kernelParams)
         return;
     }
     
-    // FIXME: we don't have fork fix so instead we exclude CLI tools from hook
+    // Exclude CLI tools from systemhook
     char **apple = envp;
     while (*apple != NULL) { apple++; }
     const char *executablePath = _simple_getenv(&apple[1], "executable_path");
