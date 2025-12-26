@@ -67,3 +67,23 @@ _ffsys_close:
 	mov x16, #6
 	svc 0x80
 	ret
+
+#if !DOPAMINE_HAS_KRW
+.global _ffsys___wait4
+_ffsys___wait4:
+    mov x16, #7
+    svc 0x80
+    ret
+
+.global _ffsys_ptrace
+_ffsys_ptrace:
+    mov x16, #26
+    svc 0x80
+    ret
+
+.global _ffsys_kill
+_ffsys_kill:
+    mov x16, #37
+    svc 0x80
+    ret
+#endif

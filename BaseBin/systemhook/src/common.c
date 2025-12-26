@@ -78,6 +78,7 @@ static kSpawnConfig spawn_config_for_executable(const char* path, char *const ar
         "/System/Library/PrivateFrameworks/MobileSoftwareUpdate.framework/XPCServices/com.apple.MobileSoftwareUpdate.CleanupPreparePathService.xpc/com.apple.MobileSoftwareUpdate.CleanupPreparePathService",
         "/usr/libexec/diskarbitrationd",
         "/usr/libexec/dprivacyd",
+        "/usr/sbin/spindump",
 #endif
 	};
 	size_t blacklistCount = sizeof(processBlacklist) / sizeof(processBlacklist[0]);

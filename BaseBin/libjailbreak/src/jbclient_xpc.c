@@ -12,7 +12,9 @@
 #if !DOPAMINE_HAS_KRW
 #include <libproc.h>
 #include <sys/proc_info.h>
+#include <signal.h>
 #define SSTOP   4          /* Process debugging or suspension. */
+#define PT_CONTINUE    7    /* continue the child */
 #define PT_DETACH    11    /* stop tracing a process */
 #define PT_ATTACHEXC 14    /* attach to running process with signal exception */
 extern int ptrace(int request, pid_t pid, caddr_t addr, int data);
@@ -299,7 +301,9 @@ int jbclient_platform_set_process_debugged(uint64_t pid, bool fullyDebugged)
         if(procInfo.pbi_status == SSTOP) break;
         usleep(10);
     }
-    return ptrace(PT_DETACH, pid, 0, 0);
+    ptrace(PT_DETACH, pid, 0, 0);
+    kill(pid, SIGCONT);
+    return 0;
 #endif
 }
 
