@@ -100,7 +100,6 @@ void dyldhook_init(uintptr_t kernelParams)
     const char *executablePath = _simple_getenv(&apple[1], "executable_path");
     char *prefixesBlacklist[] = {
         "/bin",
-        "/sbin",
         "/usr/bin",
         "/usr/local/bin",
         "/var/jb/bin",

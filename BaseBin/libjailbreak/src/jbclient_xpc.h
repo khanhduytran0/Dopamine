@@ -40,6 +40,10 @@ int jbclient_root_set_mac_label(uint64_t slot, uint64_t label, uint64_t *orgLabe
 int jbclient_root_trustcache_info(xpc_object_t *infoOut);
 int jbclient_root_trustcache_add_cdhash(uint8_t *cdhashData, size_t cdhashLen);
 int jbclient_root_trustcache_clear(void);
+#if !DOPAMINE_HAS_KRW
+int jbclient_root_mount(const char *type, const char *dir, int flags, void *data);
+int jbclient_root_unmount(const char *dir, int flags);
+#endif
 int jbclient_boomerang_done(void);
 
 #endif

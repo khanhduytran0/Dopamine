@@ -15,6 +15,10 @@
 #include "litehook.h"
 #include "sandbox.h"
 #include "private.h"
+#if !DOPAMINE_HAS_KRW
+#include <sys/mount.h>
+#include <sys/param.h>
+#endif
 
 bool gFullyDebugged = false;
 bool gHideTracedFlag = true;
@@ -387,6 +391,9 @@ __attribute__((constructor)) static void initializer(void)
 		if (string_has_suffix(gExecutablePath, "/debugserver")) {
 			litehook_hook_function(ptrace, ptrace_hook);
 		}
+#else
+        litehook_rebind_symbol(LITEHOOK_REBIND_GLOBAL, (void *)mount, (void *)jbclient_root_mount, NULL);
+        litehook_rebind_symbol(LITEHOOK_REBIND_GLOBAL, (void *)unmount, (void *)jbclient_root_unmount, NULL);
 #endif
 
 #ifndef __arm64e__

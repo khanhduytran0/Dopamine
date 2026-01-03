@@ -10,9 +10,11 @@
 #include <os/alloc_once_private.h>
 
 #if !DOPAMINE_HAS_KRW
+#include <errno.h>
 #include <libproc.h>
 #include <sys/proc_info.h>
 #include <signal.h>
+#include "mount_args.h"
 #define SSTOP   4          /* Process debugging or suspension. */
 #define PT_CONTINUE    7    /* continue the child */
 #define PT_DETACH    11    /* stop tracing a process */
@@ -519,7 +521,56 @@ int jbclient_root_trustcache_clear(void)
 	return -1;
 }
 
-#if DOPAMINE_HAS_KRW
+#if !DOPAMINE_HAS_KRW
+int jbclient_root_mount(const char *type, const char *dir, int flags, void *data)
+{
+    xpc_object_t xargs = xpc_dictionary_create_empty();
+    xpc_dictionary_set_string(xargs, "type", type);
+    xpc_dictionary_set_string(xargs, "dir", dir);
+    xpc_dictionary_set_int64(xargs, "flags", flags);
+    if (data) {
+        if (!strcmp(type, "apfs")) {
+            struct apfs_mount_args *apfsData = (struct apfs_mount_args *)data;
+            xpc_dictionary_set_data(xargs, "data", data, sizeof(struct apfs_mount_args));
+            xpc_dictionary_set_string(xargs, "data-fspec", apfsData->fspec);
+        } else if (!strcmp(type, "hfs")) {
+            struct hfs_mount_args *hfsData = (struct hfs_mount_args *)data;
+            xpc_dictionary_set_data(xargs, "data", data, sizeof(struct hfs_mount_args));
+            xpc_dictionary_set_string(xargs, "data-fspec", hfsData->fspec);
+        } else if (!strcmp(type, "tmpfs")) {
+            xpc_dictionary_set_data(xargs, "data", data, sizeof(struct tmpfs_mount_args));
+        }
+    }
+    xpc_object_t xreply = jbserver_xpc_send(JBS_DOMAIN_ROOT, JBS_ROOT_MOUNT, xargs);
+    xpc_release(xargs);
+    if (xreply) {
+        int64_t result = xpc_dictionary_get_int64(xreply, "result");
+        if (result) {
+            errno = (result < 0) ? EPERM : result;
+        }
+        xpc_release(xreply);
+        return result;
+    }
+    return -1;
+}
+int jbclient_root_unmount(const char *dir, int flags)
+{
+    xpc_object_t xargs = xpc_dictionary_create_empty();
+    xpc_dictionary_set_string(xargs, "dir", dir);
+    xpc_dictionary_set_int64(xargs, "flags", flags);
+    xpc_object_t xreply = jbserver_xpc_send(JBS_DOMAIN_ROOT, JBS_ROOT_UNMOUNT, xargs);
+    xpc_release(xargs);
+    if (xreply) {
+        int64_t result = xpc_dictionary_get_int64(xreply, "result");
+        if (result) {
+            errno = (result < 0) ? EPERM : result;
+        }
+        xpc_release(xreply);
+        return result;
+    }
+    return -1;
+}
+#else
 int jbclient_boomerang_done(void)
 {
 	xpc_object_t xreply = jbserver_xpc_send(JBS_DOMAIN_ROOT, JBS_BOOMERANG_DONE, NULL);

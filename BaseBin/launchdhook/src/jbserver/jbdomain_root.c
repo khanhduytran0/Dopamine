@@ -4,6 +4,11 @@
 #include <libjailbreak/info.h>
 #include <libjailbreak/kernel.h>
 #include <libjailbreak/primitives.h>
+#if !DOPAMINE_HAS_KRW
+#include <errno.h>
+#include <sys/mount.h>
+#include <sys/param.h>
+#endif
 
 static bool root_domain_allowed(audit_token_t clientToken)
 {
@@ -111,6 +116,30 @@ static int root_trustcache_clear(void)
 	return 0;
 }
 
+#if !DOPAMINE_HAS_KRW
+static int root_mount(const char *type, const char *dir, uint64_t flags, const uint8_t *data, size_t dataLen, const char *dataFspec)
+{
+    int ret;
+    if (data && (!strcmp(type, "apfs") || !strcmp(type, "hfs"))) {
+        void *args = malloc(dataLen);
+        if (!args) return -1;
+        memcpy(args, data, dataLen);
+        *(char **)args = (char *)dataFspec; // first field is fspec
+        ret = mount(type, dir, flags, (void *)args);
+        free(args);
+    } else {
+        ret = mount(type, dir, flags, (void *)data);
+    }
+    return !ret ? 0 : errno;
+}
+
+static int root_unmount(const char *dir, uint64_t flags)
+{
+    int ret = unmount(dir, flags);
+    return !ret ? 0 : errno;
+}
+#endif
+
 struct jbserver_domain gRootDomain = {
 	.permissionHandler = root_domain_allowed,
 	.actions = {
@@ -185,6 +214,27 @@ struct jbserver_domain gRootDomain = {
 				{ 0 },
 			},
 		},
+        // JBS_ROOT_MOUNT
+        {
+            .handler = root_mount,
+            .args = (jbserver_arg[]){
+                { .name = "type", .type = JBS_TYPE_STRING, .out = false },
+                { .name = "dir", .type = JBS_TYPE_STRING, .out = false },
+                { .name = "flags", .type = JBS_TYPE_UINT64, .out = false },
+                { .name = "data", .type = JBS_TYPE_DATA, .out = false },
+                { .name = "data-fspec", .type = JBS_TYPE_STRING, .out = false },
+                { 0 },
+            },
+        },
+        // JBS_ROOT_UNMOUNT
+        {
+            .handler = root_unmount,
+            .args = (jbserver_arg[]){
+                { .name = "dir", .type = JBS_TYPE_STRING, .out = false },
+                { .name = "flags", .type = JBS_TYPE_UINT64, .out = false },
+                { 0 },
+            },
+        },
 		{ 0 },
 	},
 };
