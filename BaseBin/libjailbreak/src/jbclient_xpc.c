@@ -524,6 +524,10 @@ int jbclient_root_trustcache_clear(void)
 #if !DOPAMINE_HAS_KRW
 int jbclient_root_mount(const char *type, const char *dir, int flags, void *data)
 {
+    // try local mount first, it it doesn't work out we forward to launchd
+    int r = mount(type, dir, flags, data);
+    if (r == 0) return 0;
+    
     xpc_object_t xargs = xpc_dictionary_create_empty();
     xpc_dictionary_set_string(xargs, "type", type);
     xpc_dictionary_set_string(xargs, "dir", dir);
@@ -547,6 +551,7 @@ int jbclient_root_mount(const char *type, const char *dir, int flags, void *data
         int64_t result = xpc_dictionary_get_int64(xreply, "result");
         if (result) {
             errno = (result < 0) ? EPERM : result;
+            result = -1;
         }
         xpc_release(xreply);
         return result;
@@ -555,6 +560,10 @@ int jbclient_root_mount(const char *type, const char *dir, int flags, void *data
 }
 int jbclient_root_unmount(const char *dir, int flags)
 {
+    // try local unmount first, it it doesn't work out we forward to launchd
+    int r = unmount(dir, flags);
+    if (r == 0) return 0;
+    
     xpc_object_t xargs = xpc_dictionary_create_empty();
     xpc_dictionary_set_string(xargs, "dir", dir);
     xpc_dictionary_set_int64(xargs, "flags", flags);
@@ -564,6 +573,7 @@ int jbclient_root_unmount(const char *dir, int flags)
         int64_t result = xpc_dictionary_get_int64(xreply, "result");
         if (result) {
             errno = (result < 0) ? EPERM : result;
+            result = -1;
         }
         xpc_release(xreply);
         return result;
