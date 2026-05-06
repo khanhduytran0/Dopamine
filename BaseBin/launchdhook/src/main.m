@@ -13,6 +13,7 @@
 #if !DOPAMINE_HAS_KRW
 #import <sys/mount.h>
 #endif
+#include <libjailbreak/codesign.h>
 
 #import "spawn_hook.h"
 #import "xpc_hook.h"
@@ -25,7 +26,15 @@
 #import "jbserver/jbserver_local.h"
 #import "asl.h"
 
+char *sandboxExtensionsArr = NULL;
+char *sandbox_extension_issue_file(const char *extension_class, const char *path, uint32_t flags);
+char *combine_strings(char separator, char **components, int count);
+
 bool gInEarlyBoot = true;
+int ptrace(int _request, pid_t _pid, caddr_t _addr, int _data);
+#define PT_SIGEXC       12
+#define PT_TRACE_ME     0
+#define PT_DETACH       11
 
 void abort_with_reason(uint32_t reason_namespace, uint64_t reason_code, const char *reason_string, uint64_t reason_flags);
 extern void systemwide_domain_set_enabled(bool enabled);
@@ -116,6 +125,7 @@ __attribute__((constructor)) static void initializer(void)
 		// In this case, we are not in early boot...
 		gInEarlyBoot = false;
 #endif
+        unsetenv("XPC_USERSPACE_REBOOTED"); // So launchd doesn't think its userspace rebooted on its first load
 		firstLoad = true;
 	}
 
@@ -135,8 +145,15 @@ __attribute__((constructor)) static void initializer(void)
 
 #if DOPAMINE_HAS_KRW
 	cs_allow_invalid(proc_self(), false);
+#else
+    uint32_t csFlags = 0;
+    csops(1, CS_OPS_STATUS, &csFlags, sizeof(csFlags));
+    if (csFlags & CS_ENFORCEMENT) {
+        ptrace(PT_TRACE_ME, 0, 0, 0);
+        ptrace(PT_SIGEXC, 0, 0, 0);
+    }
 #endif
-
+    
 	initXPCHooks();
 	initDaemonHooks();
 	initSpawnHooks();
@@ -144,17 +161,17 @@ __attribute__((constructor)) static void initializer(void)
 	initJetsamHook();
 	MSHookFunction((void *)sysctlbyname, (void *)sysctlbyname_hook, (void **)&sysctlbyname_orig);
 
-#if !DOPAMINE_HAS_KRW
-    // On first load we perform fakelib mount right here
-    if (firstLoad || !access("/var/.force_remount_fakelib", F_OK)) {
-        remove("/var/.force_remount_fakelib");
-        if (mount("bindfs", "/usr/lib", MNT_RDONLY, (void *)JBROOT_PATH("/basebin/.fakelib")) != 0) {
-            char msg[4000];
-            snprintf(msg, 4000, "Dopamine: Failed to mount fakelib /usr/lib -> %s: %s. Cannot continue", (char *)JBROOT_PATH("/basebin/.fakelib"), strerror(errno));
-            abort_with_reason(7, 1, msg, 0);
-        }
-    }
-#endif
+//#if !DOPAMINE_HAS_KRW
+//    // On first load we perform fakelib mount right here
+//    if (firstLoad || !access("/var/.force_remount_fakelib", F_OK)) {
+//        remove("/var/.force_remount_fakelib");
+//        if (mount("bindfs", "/usr/lib", MNT_RDONLY, (void *)JBROOT_PATH("/basebin/.fakelib")) != 0) {
+//            char msg[4000];
+//            snprintf(msg, 4000, "Dopamine: Failed to mount fakelib /usr/lib -> %s: %s. Cannot continue", (char *)JBROOT_PATH("/basebin/.fakelib"), strerror(errno));
+//            abort_with_reason(7, 1, msg, 0);
+//        }
+//    }
+//#endif
 
 	if (getenv("DOPAMINE_IS_HIDDEN") != 0) {
 		// If the jailbreak is currently hidden, fakelib had to be mounted again before the userspace reboot
@@ -183,4 +200,24 @@ __attribute__((constructor)) static void initializer(void)
 	// Set an identifier that uniquely identifies this userspace boot
 	// Part of rootless v2 spec
 	setenv("LAUNCHD_UUID", [NSUUID UUID].UUIDString.UTF8String, 1);
+    
+    // Generate the sandbox extensions only once
+    char *extensions[] = {
+        // Make /var/jb readable and executable
+        sandbox_extension_issue_file("com.apple.app-sandbox.read", JBROOT_PATH(""), 0),
+        sandbox_extension_issue_file("com.apple.sandbox.executable", JBROOT_PATH(""), 0),
+        // Make /var/jb/var/mobile writable
+        sandbox_extension_issue_file("com.apple.app-sandbox.read-write", JBROOT_PATH("/var/mobile"), 0)
+    };
+    int sandboxExtensionsCount = sizeof(extensions) / sizeof(char *);
+        
+    // Combine extensions into one string (reusing the array)
+    sandboxExtensionsArr = combine_strings('|', extensions, sandboxExtensionsCount);
+        
+    // Free memory for extensions after combining them
+    for (int i = 0; i < sandboxExtensionsCount; i++) {
+        if (extensions[i]) {
+            free(extensions[i]);
+        }
+    }
 }

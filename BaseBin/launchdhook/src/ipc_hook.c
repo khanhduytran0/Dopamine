@@ -1,9 +1,5 @@
 #include <sandbox.h>
-#if DOPAMINE_HAS_KRW
 #include <substrate.h>
-#else
-#include "jitless.h"
-#endif
 
 int (*sandbox_check_by_audit_token_orig)(audit_token_t au, const char *operation, int sandbox_filter_type, ...);
 int sandbox_check_by_audit_token_hook(audit_token_t au, const char *operation, int sandbox_filter_type, ...)

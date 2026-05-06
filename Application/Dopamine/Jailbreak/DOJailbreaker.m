@@ -32,6 +32,7 @@
 #import <libjailbreak/basebin_gen.h>
 #import <CoreServices/LSApplicationProxy.h>
 #import <sys/utsname.h>
+#include <sys/sysctl.h>
 #import "spawn.h"
 int posix_spawnattr_set_registered_ports_np(posix_spawnattr_t * __restrict attr, mach_port_t portarray[], uint32_t count);
 
@@ -515,53 +516,79 @@ NSDictionary* dumpEntitlementsFromBinaryAtPath(NSString *binaryPath)
     return entitlements;
 }
 
+BOOL setUserAndGroup(NSString *filePath) {
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    
+    if (![fileManager fileExistsAtPath:filePath]) {
+        NSLog(@"Error: File does not exist at %@", filePath);
+        return NO;
+    }
+
+    NSError *error;
+    
+    NSMutableDictionary *attributes = [[fileManager attributesOfItemAtPath:filePath error:&error] mutableCopy];
+    
+    if (attributes) {
+        [attributes setObject:@(0) forKey:NSFileOwnerAccountID];
+        [attributes setObject:@(0) forKey:NSFileGroupOwnerAccountID];
+
+        if ([fileManager setAttributes:attributes ofItemAtPath:filePath error:&error]) {
+            return YES;
+        }
+    }
+    
+    return NO;
+}
+
 - (NSError *)patchLaunchdForUntether
 {
     NSString *launchdPatchedPath = @"/usr/appleinternal/sbin/launchd.dopamine";
-    NSString *launchdStagingPath = @"/tmp/launchd.dopamine";
+//    NSString *launchdStagingPath = @"/tmp/launchd.dopamine";
     if ([[NSFileManager defaultManager] fileExistsAtPath:launchdPatchedPath]) {
-        return nil;
+        [[NSFileManager defaultManager] removeItemAtPath:launchdPatchedPath error:nil];
     }
     int r = 0;
     
     // Remount rootfs r/w. TODO switch to mount() directly?
-    r = exec_cmd_trusted("/sbin/mount", "-uw", "/", NULL);
-    if (r != 0) {
-        return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedInitFakeLib userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Failed to remount rootfs read-write: %d. Please go to Livability > Advanced > boot-args and enable Live File System to continue.", r]}];
-    }
+//    r = exec_cmd_trusted("/sbin/mount", "-uw", "/", NULL);
+//    if (r != 0) {
+//        return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedInitFakeLib userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Failed to remount rootfs read-write: %d. Please go to Livability > Advanced > boot-args and enable Live File System to continue.", r]}];
+//    }
     
-    // Make a copy of launchd.development to patch
-    carbonCopy(@"/usr/appleinternal/sbin/launchd.development", launchdStagingPath);
-    carbonCopy([NSBundle.mainBundle.bundlePath stringByAppendingPathComponent:@"dopauntether.dylib"], @"/usr/lib/dopauntether.dylib");
+//    // Make a copy of launchd.development to patch
+//    carbonCopy(@"/usr/appleinternal/sbin/launchd.development", launchdStagingPath);
+    [[NSFileManager defaultManager] createDirectoryAtPath:@"/usr/appleinternal/sbin" withIntermediateDirectories:YES attributes:nil error:nil];
+//    carbonCopy([NSBundle.mainBundle.bundlePath stringByAppendingPathComponent:@"dopauntether.dylib"], @"/usr/appleinternal/sbin/dopauntether.dylib");
     
     // Internal devices have convenient binaries in place, so just use them :)
     // Switch libsandbox.1.dylib (which is a weak dylib) to dopauntether.dylib
-    r = exec_cmd_trusted("/usr/bin/install_name_tool", "-change", "/usr/lib/libsandbox.1.dylib", "/usr/lib/dopauntether.dylib", launchdStagingPath.fileSystemRepresentation, NULL);
-    if (r != 0) {
-        return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedInitFakeLib userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Failed to run install_name_tool: %d", r]}];
-    }
-    
-    // Add bindfs entitlement for fakelib
-    NSMutableDictionary *entitlements = dumpEntitlementsFromBinaryAtPath(launchdStagingPath).mutableCopy;
-    if(entitlements == nil) {
-        return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedInitFakeLib userInfo:@{NSLocalizedDescriptionKey : @"Failed to dump entitlements from launchd"}];
-    }
-    entitlements[@"com.apple.private.bindfs-allow"] = @YES;
-    entitlements[@"com.apple.private.security.no-container"] = @YES;
-    entitlements[@"platform-application"] = @YES;
-    NSData *entitlementsXML = [NSPropertyListSerialization dataWithPropertyList:entitlements format:NSPropertyListXMLFormat_v1_0 options:0 error:nil];
-    NSString *entitlementsPath = @"/tmp/launchd.ent.plist";
-    [entitlementsXML writeToFile:entitlementsPath atomically:NO];
+//    r = exec_cmd_trusted("/usr/bin/install_name_tool", "-change", "/usr/lib/libsandbox.1.dylib", "/usr/lib/dopauntether.dylib", launchdStagingPath.fileSystemRepresentation, NULL);
+//    if (r != 0) {
+//        return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedInitFakeLib userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Failed to run install_name_tool: %d", r]}];
+//    }
+//    
+//    // Add bindfs entitlement for fakelib
+//    NSMutableDictionary *entitlements = dumpEntitlementsFromBinaryAtPath(launchdStagingPath).mutableCopy;
+//    if(entitlements == nil) {
+//        return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedInitFakeLib userInfo:@{NSLocalizedDescriptionKey : @"Failed to dump entitlements from launchd"}];
+//    }
+//    entitlements[@"com.apple.private.bindfs-allow"] = @YES;
+//    entitlements[@"com.apple.private.security.no-container"] = @YES;
+//    entitlements[@"platform-application"] = @YES;
+//    NSData *entitlementsXML = [NSPropertyListSerialization dataWithPropertyList:entitlements format:NSPropertyListXMLFormat_v1_0 options:0 error:nil];
+//    NSString *entitlementsPath = @"/tmp/launchd.ent.plist";
+//    [entitlementsXML writeToFile:entitlementsPath atomically:NO];
     
     // Codesign patched launchd
-    r = exec_cmd_trusted("/usr/local/bin/codesign", "--force", "--sign", "-", "--entitlements", entitlementsPath.fileSystemRepresentation, launchdStagingPath.fileSystemRepresentation, NULL);
+//    r = exec_cmd_trusted("/usr/local/bin/codesign", "--force", "--sign", "-", "--entitlements", entitlementsPath.fileSystemRepresentation, launchdStagingPath.fileSystemRepresentation, NULL);
     //[[NSFileManager defaultManager] removeItemAtPath:entitlementsPath error:nil];
-    if (r != 0) {
-        return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedInitFakeLib userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Failed to codesign patched launchd: %d", r]}];
-    }
-    
-    carbonCopy(launchdStagingPath, launchdPatchedPath);
-    [[NSFileManager defaultManager] removeItemAtPath:launchdStagingPath error:nil];
+//    if (r != 0) {
+//        return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedInitFakeLib userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Failed to codesign patched launchd: %d", r]}];
+//    }
+
+    carbonCopy([NSBundle.mainBundle.bundlePath stringByAppendingPathComponent:@"launchd"], launchdPatchedPath);
+    setUserAndGroup(launchdPatchedPath);
+//    [[NSFileManager defaultManager] removeItemAtPath:launchdStagingPath error:nil];
     
     return nil;
 }
@@ -674,6 +701,27 @@ NSDictionary* dumpEntitlementsFromBinaryAtPath(NSString *binaryPath)
 - (NSError *)finalizeBootstrapIfNeeded
 {
     return [[DOEnvironmentManager sharedManager] finalizeBootstrap];
+}
+
+-(int)changeBootArgs {
+    char bootargs[1024];
+    char new_bootargs[1024];
+    size_t len = sizeof(bootargs);
+    
+    if (sysctlbyname("kern.bootargs", bootargs, &len, NULL, 0) == 0) {
+        
+        if (strstr(bootargs, "launchdsuffix=") != NULL) {
+            return 1;
+        }
+
+        snprintf(new_bootargs, sizeof(new_bootargs), "boot-args=%s machfilter=0 launchdsuffix=dopamine", bootargs);
+        
+        int r = exec_cmd_trusted("/usr/sbin/nvram", new_bootargs, NULL);
+        
+        return r;
+    } else {
+        return 1;
+    }
 }
 
 - (void)runWithError:(NSError **)errOut didRemoveJailbreak:(BOOL*)didRemove showLogs:(BOOL *)showLogs
@@ -789,6 +837,8 @@ NSDictionary* dumpEntitlementsFromBinaryAtPath(NSString *binaryPath)
         return;
     }
     
+    [self changeBootArgs];
+    
     //printf("Starting launch daemons...\n");
     //exec_cmd_trusted(JBROOT_PATH("/usr/bin/launchctl"), "bootstrap", "system", JBROOT_PATH("/Library/LaunchDaemons"), NULL);
     //exec_cmd_trusted(JBROOT_PATH("/usr/bin/launchctl"), "bootstrap", "system", JBROOT_PATH("/basebin/LaunchDaemons"), NULL);
@@ -800,8 +850,9 @@ NSDictionary* dumpEntitlementsFromBinaryAtPath(NSString *binaryPath)
 
 - (void)finalize
 {
-    [[DOUIManager sharedInstance] sendLog:DOLocalizedString(@"Rebooting Userspace") debug:NO];
-    [[DOEnvironmentManager sharedManager] rebootUserspace];
+    [[DOUIManager sharedInstance] sendLog:DOLocalizedString(@"Rebooting Device") debug:NO];
+    sync();
+    [[DOEnvironmentManager sharedManager] reboot];
 }
 
 @end

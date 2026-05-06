@@ -10,11 +10,12 @@
 
 #import "DOEnvironmentManager.h"
 #import <libjailbreak/info.h>
+#import <libjailbreak/util.h>
 #import <libjailbreak/jbclient_xpc.h>
 
 #if !DOPAMINE_HAS_KRW
 #import <libjailbreak/carboncopy.h>
-#define sudoPath "/private/preboot/Cryptexes/sudo"
+#define sudoPath "/sudo"
 BOOL launchHaxx(NSArray *args);
 #endif
 
@@ -29,6 +30,7 @@ int main(int argc, char * argv[]) {
             }
 #if !DOPAMINE_HAS_KRW
             else if (!strcmp(argv[2], "elevate-privilege")) {
+                exec_cmd_trusted("/sbin/mount", "-uw", "/", NULL);
                 const char *sudoPathTmp = (sudoPath ".tmp");
                 NSString *sudoPathInBundle = [[NSBundle mainBundle] pathForResource:@"sudo" ofType:nil];
                 carbonCopy(sudoPathInBundle, @(sudoPathTmp));

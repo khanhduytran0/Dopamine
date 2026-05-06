@@ -2,11 +2,7 @@
 #import <sys/types.h>
 #import <sys/stat.h>
 #import <unistd.h>
-#if DOPAMINE_HAS_KRW
 #include <substrate.h>
-#else
-#include "jitless.h"
-#endif
 #import <mach-o/dyld.h>
 #import <libjailbreak/libjailbreak.h>
 #import <Foundation/Foundation.h>

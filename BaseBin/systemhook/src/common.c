@@ -13,6 +13,18 @@
 #include <libjailbreak/jbclient_xpc.h>
 #include <libjailbreak/jbserver_domains.h>
 
+int is_dev_kernel(void) {
+    static bool is_dev = false;
+    static bool checked = false;
+    if (checked) return is_dev;
+    checked = true;
+    kernel_version_t version;
+    host_kernel_version(mach_host_self(), version);
+    is_dev = !strstr(version, "RELEASE_ARM64");
+    //printf("Detected %s kernel\n", is_dev ? "DEVELOPMENT" : "RELEASE");
+    return is_dev;
+}
+
 bool string_has_prefix(const char *str, const char* prefix)
 {
 	if (!str || !prefix) {
@@ -79,6 +91,9 @@ static kSpawnConfig spawn_config_for_executable(const char* path, char *const ar
         "/usr/libexec/diskarbitrationd",
         "/usr/libexec/dprivacyd",
         "/usr/sbin/spindump",
+        "/usr/libexec/configd",
+        // has CS_ENFORCEMENT
+        "/usr/libexec/UserEventAgent",
 #endif
 	};
 	size_t blacklistCount = sizeof(processBlacklist) / sizeof(processBlacklist[0]);
@@ -88,7 +103,8 @@ static kSpawnConfig spawn_config_for_executable(const char* path, char *const ar
 	}
 #if !DOPAMINE_HAS_KRW
     // Disable injecting to WebContent since we cannot disable syscall filtering
-    if (strstr(path, "/com.apple.WebKit.WebContent")) return 0;
+    // This can be worked around if you add machfilter=0 boot-arg.
+    if (!is_dev_kernel() && string_has_suffix(path, "com.apple.WebKit.WebContent")) return 0;
 #endif
 
 	return (kSpawnConfigInject | kSpawnConfigTrust);

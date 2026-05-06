@@ -1,3 +1,4 @@
+#if DOPAMINE_HAS_KRW
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -34,3 +35,4 @@ int HOOK(__fcntl)(int fd, int cmd, void *arg1, void *arg2, void *arg3, void *arg
 	}
 	return (int)msyscall_errno(0x5C, fd, cmd, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
 }
+#endif

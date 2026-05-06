@@ -9,7 +9,7 @@
 
 all: basebin.tar
 
-subprojects: ChOma XPF MachOMerger opainject libjailbreak systemhook forkfix launchdhook boomerang jbctl idownloadd watchdoghook rootlesshooks dopauntether sudo
+subprojects: ChOma XPF MachOMerger opainject libjailbreak systemhook forkfix launchdhook faked boomerang jbctl idownloadd watchdoghook rootlesshooks sudo
 
 ChOma: .build .include
 	@$(MAKE) -C ChOma TARGET=ios DISABLE_SIGNING=1 DISABLE_TESTS=1 DYLIB_LDFLAGS="-install_name @loader_path/libchoma.dylib"
@@ -48,6 +48,9 @@ launchdhook: .build .include libjailbreak
 	$(MAKE) -C launchdhook
 	@cp launchdhook/launchdhook.dylib .build
 
+faked: .build .include libjailbreak
+	$(MAKE) -C faked
+
 boomerang: .build .include libjailbreak
 	$(MAKE) -C boomerang
 	@cp boomerang/boomerang .build
@@ -67,9 +70,6 @@ watchdoghook: .build .include libjailbreak
 rootlesshooks: .build .include libjailbreak
 	$(MAKE) -C rootlesshooks
 	@cp rootlesshooks/.theos/obj/rootlesshooks.dylib .build
-
-dopauntether: .build .include
-	$(MAKE) -C dopauntether
 
 sudo: .build .include
 	$(MAKE) -C sudo
@@ -113,17 +113,17 @@ clean:
 	@$(MAKE) -C systemhook $@
 	@$(MAKE) -C forkfix $@
 	@$(MAKE) -C launchdhook $@
+	@$(MAKE) -C faked $@
 	@$(MAKE) -C boomerang $@
 	@$(MAKE) -C jbctl $@
 	@$(MAKE) -C idownloadd $@
 	@$(MAKE) -C watchdoghook $@
 	@$(MAKE) -C rootlesshooks $@
 	@$(MAKE) -C dyldhook $@
-	@$(MAKE) -C dopauntether $@
 	@$(MAKE) -C sudo $@
 	@rm -rf .build
 	@rm -rf .include
 	@rm -rf basebin.tar
 	@rm -rf basebin.tc
 
-.PHONY: clean .build .include ChOma XPF MachOMerger opainject libjailbreak systemhook forkfix launchdhook boomerang jbctl idownloadd watchdoghook rootlesshooks dopauntether sudo basebin.tc dyldhook basebin.tar
+.PHONY: clean .build .include ChOma XPF MachOMerger opainject libjailbreak systemhook forkfix launchdhook faked boomerang jbctl idownloadd watchdoghook rootlesshooks sudo basebin.tc dyldhook basebin.tar

@@ -8,6 +8,7 @@
 #include <mach-o/dyld.h>
 #include <dlfcn.h>
 #include <os/alloc_once_private.h>
+#include <sys/syscall.h>
 
 #if !DOPAMINE_HAS_KRW
 #include <errno.h>
@@ -525,12 +526,16 @@ int jbclient_root_trustcache_clear(void)
 int jbclient_root_mount(const char *type, const char *dir, int flags, void *data)
 {
     // try local mount first, it it doesn't work out we forward to launchd
-    int r = mount(type, dir, flags, data);
+    int r = syscall(SYS_mount, type, dir, flags, data);
     if (r == 0) return 0;
+    
+    char absdir[PATH_MAX];
+    
+    realpath(dir, absdir);
     
     xpc_object_t xargs = xpc_dictionary_create_empty();
     xpc_dictionary_set_string(xargs, "type", type);
-    xpc_dictionary_set_string(xargs, "dir", dir);
+    xpc_dictionary_set_string(xargs, "dir", absdir);
     xpc_dictionary_set_int64(xargs, "flags", flags);
     if (data) {
         if (!strcmp(type, "apfs")) {
@@ -561,11 +566,15 @@ int jbclient_root_mount(const char *type, const char *dir, int flags, void *data
 int jbclient_root_unmount(const char *dir, int flags)
 {
     // try local unmount first, it it doesn't work out we forward to launchd
-    int r = unmount(dir, flags);
+    int r = syscall(SYS_unmount, dir, flags);
     if (r == 0) return 0;
     
+    char absdir[PATH_MAX];
+    
+    realpath(dir, absdir);
+    
     xpc_object_t xargs = xpc_dictionary_create_empty();
-    xpc_dictionary_set_string(xargs, "dir", dir);
+    xpc_dictionary_set_string(xargs, "dir", absdir);
     xpc_dictionary_set_int64(xargs, "flags", flags);
     xpc_object_t xreply = jbserver_xpc_send(JBS_DOMAIN_ROOT, JBS_ROOT_UNMOUNT, xargs);
     xpc_release(xargs);

@@ -205,10 +205,10 @@ int cs_allow_invalid(uint64_t proc, bool emulateFully)
         // spawn jbctl to allow invalid code signing for us, since we cannot do this in launchd
         uint32_t csFlags = 0;
         csops(proc, CS_OPS_STATUS, &csFlags, sizeof(csFlags));
-        if (!(csFlags & CS_DEBUGGED)) {
+        if (csFlags & CS_ENFORCEMENT) {
             char *envp[] = { "DOPAMINE_EXEMPT_DYLDHOOK=1", NULL };
             char pidStr[8];
-            snprintf(pidStr, sizeof(pidStr), "%d", proc);
+            snprintf(pidStr, sizeof(pidStr), "%llu", proc);
             int ret = exec_cmd_env(envp, JBROOT_PATH("/basebin/jbctl"), "proc_set_debugged", pidStr, NULL);
             return ret;
         }

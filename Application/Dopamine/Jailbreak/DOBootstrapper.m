@@ -259,6 +259,13 @@ typedef NS_ENUM(NSInteger, JBErrorCode) {
     return !(ppStfs.f_flags & MNT_RDONLY);
 }
 
+- (BOOL)isSlashMountedWritable
+{
+    struct statfs ppStfs;
+    statfs("/", &ppStfs);
+    return !(ppStfs.f_flags & MNT_RDONLY);
+}
+
 - (int)remountPrivatePrebootWritable:(BOOL)writable
 {
     struct statfs ppStfs;
@@ -277,12 +284,41 @@ typedef NS_ENUM(NSInteger, JBErrorCode) {
     return mount("apfs", "/private/preboot", flags, &mntargs);
 }
 
+- (int)remountSlashWritable:(BOOL)writable
+{
+    struct statfs ppStfs;
+    int r = statfs("/", &ppStfs);
+    if (r != 0) return r;
+    
+    uint32_t flags = MNT_UPDATE;
+    if (!writable) {
+        flags |= MNT_RDONLY;
+    }
+    struct hfs_mount_args mntargs =
+    {
+        .fspec = ppStfs.f_mntfromname,
+        .hfs_mask = 0,
+    };
+    return mount("apfs", "/", flags, &mntargs);
+}
+
 - (NSError *)ensurePrivatePrebootIsWritable
 {
     if (![self isPrivatePrebootMountedWritable]) {
         int r = [self remountPrivatePrebootWritable:YES];
         if (r != 0) {
             return [NSError errorWithDomain:bootstrapErrorDomain code:BootstrapErrorCodeFailedRemount userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Remounting /private/preboot as writable failed with error: %s", strerror(errno)]}];
+        }
+    }
+    return nil;
+}
+
+- (NSError *)ensureSlashIsWritable
+{
+    if (![self isSlashMountedWritable]) {
+        int r = [self remountSlashWritable:YES];
+        if (r != 0) {
+            return [NSError errorWithDomain:bootstrapErrorDomain code:BootstrapErrorCodeFailedRemount userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Remounting / as writable failed with error: %s. Please ensure that Livability > Advanced > boot-args > Live File System is enabled to continue.", strerror(errno)]}];
         }
     }
     return nil;
@@ -397,6 +433,12 @@ typedef NS_ENUM(NSInteger, JBErrorCode) {
 
     // Ensure /private/preboot is mounted writable (Not writable by default on iOS <=15)
     NSError *error = [self ensurePrivatePrebootIsWritable];
+    if (error) {
+        completion(error);
+        return;
+    }
+    
+    error = [self ensureSlashIsWritable];
     if (error) {
         completion(error);
         return;

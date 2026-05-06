@@ -4,11 +4,7 @@
 #include <bsm/libbsm.h>
 #include <libproc.h>
 #include <sandbox.h>
-#if DOPAMINE_HAS_KRW
 #include <substrate.h>
-#else
-#include "jitless.h"
-#endif
 #include <libjailbreak/jbserver.h>
 
 mach_msg_header_t* dispatch_mach_msg_get_msg(void *message, size_t *_Nullable size_ptr);

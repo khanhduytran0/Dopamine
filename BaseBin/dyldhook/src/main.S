@@ -71,7 +71,9 @@ MAKE_TRAMPOLINE(strcpy)
 MAKE_TRAMPOLINE(strcat)
 MAKE_TRAMPOLINE(close)
 MAKE_TRAMPOLINE(open)
+#if DOPAMINE_HAS_KRW
 MAKE_TRAMPOLINE(fcntl)
+#endif
 MAKE_TRAMPOLINE(mmap)
 MAKE_TRAMPOLINE(_simple_getenv)
 MAKE_TRAMPOLINE_ALIAS(mig_get_reply_port, dyld_mig_get_reply_port)

@@ -52,14 +52,14 @@ int jbclient_initialize_primitives_internal(bool physrwPTE)
 
 	return -1;
 #else
-    char *activePrebootPath = "/private/preboot/Cryptexes";
+    char *activePrebootPath = "/";
     char randomizedJailbreakPath[PATH_MAX];
     DIR *d = opendir(activePrebootPath);
     assert(d != NULL);
     struct dirent *dir;
     while ((dir = readdir(d)) != NULL) {
         if(!strncmp(dir->d_name, "dopamine", 8)) {
-            snprintf(randomizedJailbreakPath, sizeof(randomizedJailbreakPath), "%s/%s/procursus", activePrebootPath, dir->d_name);
+            snprintf(randomizedJailbreakPath, sizeof(randomizedJailbreakPath), "%s%s/procursus", activePrebootPath, dir->d_name);
             break;
         }
     }

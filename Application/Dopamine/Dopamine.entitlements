@@ -42,15 +42,17 @@
 		<string>IOSurfaceRoot</string>
 		<string>IOSurfaceRootUserClient</string>
 		<string>AppleJPEGDriverUserClient</string>
-        <string>H11ANEInDirectPathClient</string>
+		<string>H11ANEInDirectPathClient</string>
 	</array>
 	<key>com.apple.developer.kernel.extended-virtual-addressing</key>
 	<true/>
 	<key>com.apple.developer.kernel.increased-memory-limit</key>
 	<true/>
-    <key>com.apple.private.xpc.launchd.job-manager</key>
-    <string>com.apple.runningboard</string>
-    <key>com.apple.private.xpc.persona-manager</key>
-    <true/>
+	<key>com.apple.private.xpc.launchd.job-manager</key>
+	<string>com.apple.runningboard</string>
+	<key>com.apple.private.xpc.persona-manager</key>
+	<true/>
+	<key>jb.pmap_cs.custom_trust</key>
+	<string>PMAP_CS_IN_LOADED_TRUST_CACHE</string>
 </dict>
 </plist>

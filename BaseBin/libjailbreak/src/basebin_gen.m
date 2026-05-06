@@ -13,22 +13,60 @@ int apply_dyld_patch(NSString *dyldPath, const char *newUUIDPrefix)
 
 	// Make AMFI flags always be `0xff`, allows DYLD_* variables to always work
 	__block uint64_t getAMFIAddr = 0;
-	macho_enumerate_symbols(dyldMacho, ^(const char *name, uint8_t type, uint64_t vmaddr, bool *stop){
-		if (!strcmp(name, "__ZN5dyld413ProcessConfig8Security7getAMFIERKNS0_7ProcessERNS_15SyscallDelegateE")) {
-			getAMFIAddr = vmaddr;
-		}
-	});
+    __block uint64_t platformLoadableAddr = 0;
+    __block uint64_t dyldCacheOverridableAddr = 0;
+    __block uint64_t dyldCacheAlwaysOverridableAddr = 0;
+    char *platformLoadableSym = NULL;
+        
+    if (__builtin_available(iOS 18.4, *)) {
+        platformLoadableSym = "__ZNK6mach_o6Header19loadableIntoProcessENS_8PlatformE7CStringb";
+    } else {
+        platformLoadableSym = "__ZNK5dyld39MachOFile19loadableIntoProcessENS_8PlatformEPKcb";
+    }
+    
+    macho_enumerate_symbols(dyldMacho, ^(const char *name, uint8_t type, uint64_t vmaddr, bool *stop){
+        if (!strcmp(name, "__ZN5dyld413ProcessConfig8Security7getAMFIERKNS0_7ProcessERNS_15SyscallDelegateE")) {
+            getAMFIAddr = vmaddr;
+        }
+        if (!strcmp(name, platformLoadableSym)) {
+            platformLoadableAddr = vmaddr;
+        }
+        if (!strcmp(name, "__ZNK5dyld413ProcessConfig9DyldCache17isOverridablePathEPKc")) {
+            dyldCacheOverridableAddr = vmaddr;
+        }
+        if (!strcmp(name, "__ZN5dyld413ProcessConfig9DyldCache23isAlwaysOverridablePathEPKc")) {
+            dyldCacheAlwaysOverridableAddr = vmaddr;
+        }
+    });
+    
 	uint32_t getAMFIPatch[] = {
 		0xd2801fe0, // mov x0, 0xff
 		0xd65f03c0  // ret
 	};
+    
+    uint32_t return1Patch[] = {
+        0xd2800020, // mov x0, #1
+        0xd65f03c0  // ret
+    };
 
 	if (getAMFIAddr == 0) {
         printf("Error: Failed patchfinding getAMFI\n");
         return -1;
+    } else if (platformLoadableAddr == 0) {
+        printf("Error: Failed patchfinding platformLoadable\n");
+        return -1;
+    } else if (dyldCacheOverridableAddr == 0) {
+        printf("Error: Failed patchfinding dyldCacheOverridable\n");
+        return -1;
+    } else if (dyldCacheAlwaysOverridableAddr == 0) {
+        printf("Error: Failed patchfinding dyldCacheAlwaysOverridable\n");
+        return -1;
     }
-
+    
 	macho_write_at_vmaddr(dyldMacho, getAMFIAddr, sizeof(getAMFIPatch), getAMFIPatch);
+    macho_write_at_vmaddr(dyldMacho, platformLoadableAddr, sizeof(return1Patch), return1Patch);
+    macho_write_at_vmaddr(dyldMacho, dyldCacheOverridableAddr, sizeof(return1Patch), return1Patch);
+    macho_write_at_vmaddr(dyldMacho, dyldCacheAlwaysOverridableAddr, sizeof(return1Patch), return1Patch);
 
 	// iOS 16+: Change LC_UUID to prevent the kernel from using the in-cache dyld
 	macho_enumerate_load_commands(dyldMacho, ^(struct load_command loadCommand, uint64_t offset, void *cmd, bool *stop) {
@@ -139,7 +177,7 @@ int basebin_generate(bool comingFromJBUpdate)
 	NSString *dyldUUIDPrefix = [@"DOPA" stringByAppendingString:dopamineVersion];
 	if (apply_dyld_patch(dyldInflightPath, dyldUUIDPrefix.UTF8String) != 0) return 2;
 	if (merge_dyldhook(dyldInflightPath, dyldInflightPath) != 0) return 3;
-	if (resign_file(dyldInflightPath, @"com.apple.dyld", YES) != 0) return 4;
+	if (resign_file(dyldInflightPath, @"com.apple.darwin.ignition", YES) != 0) return 4;
 
 	if (comingFromJBUpdate) {
 		// We cannot delete dyld as this point because it's still in use

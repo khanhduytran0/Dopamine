@@ -363,12 +363,14 @@ __attribute__((constructor)) static void initializer(void)
 		dyld_hook_routine(*gDyldPtr, 17, (void *)&dyld_dlsym_hook, (void **)&dyld_dlsym_orig, 0x839D);
 	}
 
+#if DOPAMINE_HAS_KRW
 #ifdef __arm64e__
 	// Since pages have been modified in this process, we need to load forkfix to ensure forking will work
 	// Optimization: If the process cannot fork at all due to sandbox, we don't need to do anything
 	if (sandbox_check(getpid(), "process-fork", SANDBOX_CHECK_NO_REPORT, NULL) == 0) {
 		dlopen(JBROOT_PATH("/basebin/forkfix.dylib"), RTLD_NOW);
 	}
+#endif
 #endif
 
 	if (load_executable_path() == 0) {
@@ -378,9 +380,11 @@ __attribute__((constructor)) static void initializer(void)
 			!strcmp(gExecutablePath, "/usr/libexec/lsd")) {
 			dlopen(JBROOT_PATH("/basebin/rootlesshooks.dylib"), RTLD_NOW);
 		}
+#if DOPAMINE_HAS_KRW
 		else if (!strcmp(gExecutablePath, "/usr/libexec/watchdogd")) {
 			dlopen(JBROOT_PATH("/basebin/watchdoghook.dylib"), RTLD_NOW);
 		}
+#endif
 
 #if DOPAMINE_HAS_KRW
 		// ptrace hook to allow attaching a debugger to processes that systemhook did not inject into
@@ -392,8 +396,8 @@ __attribute__((constructor)) static void initializer(void)
 			litehook_hook_function(ptrace, ptrace_hook);
 		}
 #else
-        litehook_rebind_symbol(LITEHOOK_REBIND_GLOBAL, (void *)mount, (void *)jbclient_root_mount, NULL);
-        litehook_rebind_symbol(LITEHOOK_REBIND_GLOBAL, (void *)unmount, (void *)jbclient_root_unmount, NULL);
+        litehook_hook_function(mount, jbclient_root_mount);
+        litehook_hook_function(unmount, jbclient_root_unmount);
 #endif
 
 #ifndef __arm64e__

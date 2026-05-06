@@ -1,6 +1,7 @@
 #import "internal.h"
 #import <Foundation/Foundation.h>
 #import <libjailbreak/libjailbreak.h>
+#import <libjailbreak/basebin_gen.h>
 #import <sys/mount.h>
 
 SInt32 CFUserNotificationDisplayAlert(CFTimeInterval timeout, CFOptionFlags flags, CFURLRef iconURL, CFURLRef soundURL, CFURLRef localizationURL, CFStringRef alertHeader, CFStringRef alertMessage, CFStringRef defaultButtonTitle, CFStringRef alternateButtonTitle, CFStringRef otherButtonTitle, CFOptionFlags *responseFlags) API_AVAILABLE(ios(3.0));
@@ -203,5 +204,8 @@ int jbctl_handle_internal(const char *command, int argc, char* argv[])
 		}
 		return -1;
 	}
+    else if (!strcmp(command, "basebin_gen")) {
+        return basebin_generate(NO);
+    }
 	return -1;
 }

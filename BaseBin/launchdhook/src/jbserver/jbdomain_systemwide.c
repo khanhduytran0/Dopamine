@@ -20,6 +20,7 @@ void systemwide_domain_set_enabled(bool enabled)
 
 extern bool string_has_prefix(const char *str, const char* prefix);
 extern bool string_has_suffix(const char* str, const char* suffix);
+extern char *sandboxExtensionsArr;
 
 char *combine_strings(char separator, char **components, int count)
 {
@@ -231,22 +232,24 @@ int systemwide_process_checkin(audit_token_t *processToken, char **rootPathOut, 
 	systemwide_get_jbroot(rootPathOut);
 	systemwide_get_boot_uuid(bootUUIDOut);
 
-	// Generate sandbox extensions for the requesting process
-	char *sandboxExtensionsArr[] = {
-		// Make /var/jb readable and executable
-		sandbox_extension_issue_file_to_process("com.apple.app-sandbox.read", JBROOT_PATH(""), 0, *processToken),
-		sandbox_extension_issue_file_to_process("com.apple.sandbox.executable", JBROOT_PATH(""), 0, *processToken),
-
-		// Make /var/jb/var/mobile writable
-		sandbox_extension_issue_file_to_process("com.apple.app-sandbox.read-write", JBROOT_PATH("/var/mobile"), 0, *processToken),
-	};
-	int sandboxExtensionsCount = sizeof(sandboxExtensionsArr) / sizeof(char *);
-	*sandboxExtensionsOut = combine_strings('|', sandboxExtensionsArr, sandboxExtensionsCount);
-	for (int i = 0; i < sandboxExtensionsCount; i++) {
-		if (sandboxExtensionsArr[i]) {
-			free(sandboxExtensionsArr[i]);
-		}
-	}
+//	// Generate sandbox extensions for the requesting process
+//	char *sandboxExtensionsArr[] = {
+//		// Make /var/jb readable and executable
+//		sandbox_extension_issue_file_to_process("com.apple.app-sandbox.read", JBROOT_PATH(""), 0, *processToken),
+//		sandbox_extension_issue_file_to_process("com.apple.sandbox.executable", JBROOT_PATH(""), 0, *processToken),
+//
+//		// Make /var/jb/var/mobile writable
+//		sandbox_extension_issue_file_to_process("com.apple.app-sandbox.read-write", JBROOT_PATH("/var/mobile"), 0, *processToken),
+//	};
+//	int sandboxExtensionsCount = sizeof(sandboxExtensionsArr) / sizeof(char *);
+//	*sandboxExtensionsOut = combine_strings('|', sandboxExtensionsArr, sandboxExtensionsCount);
+//	for (int i = 0; i < sandboxExtensionsCount; i++) {
+//		if (sandboxExtensionsArr[i]) {
+//			free(sandboxExtensionsArr[i]);
+//		}
+//	}
+    
+    *sandboxExtensionsOut = strdup(sandboxExtensionsArr);
 
 	bool fullyDebugged = false;
 	if (string_has_prefix(procPath, "/private/var/containers/Bundle/Application") || string_has_prefix(procPath, JBROOT_PATH("/Applications"))) {

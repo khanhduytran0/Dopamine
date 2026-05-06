@@ -108,7 +108,7 @@ int reboot3(uint64_t flags, ...);
 #if DOPAMINE_HAS_KRW
         NSString *activePrebootPath = [self activePrebootPath];
 #else
-        NSString *activePrebootPath = @"/private/preboot/Cryptexes";
+        NSString *activePrebootPath = @"/";
 #endif
         
         NSString *randomizedJailbreakPath;
@@ -172,7 +172,7 @@ int reboot3(uint64_t flags, ...);
 #if DOPAMINE_HAS_KRW
         NSString *activePrebootPath = [self activePrebootPath];
 #else
-        NSString *activePrebootPath = @"/private/preboot/Cryptexes";
+        NSString *activePrebootPath = @"/";
 #endif
 
         NSString *characterSet = @"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";

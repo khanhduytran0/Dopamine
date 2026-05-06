@@ -11,6 +11,7 @@ Dopamine.ipa: build/Build/Products/Debug-iphoneos/Dopamine.app
 	rm -rf Payload Dopamine.ipa
 	mkdir Payload
 	cp -r build/Build/Products/Debug-iphoneos/Dopamine.app Payload/Dopamine.app
+	cp ../BaseBin/faked/launchd Payload/Dopamine.app/
 	zip -Ar Dopamine.ipa Payload
 	rm -rf Payload
 	rm -rf Dopamine.tipa

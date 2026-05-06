@@ -94,52 +94,36 @@ void dyldhook_init(uintptr_t kernelParams)
         return;
     }
     
-    // Exclude CLI tools from systemhook
-    char **apple = envp;
-    while (*apple != NULL) { apple++; }
-    const char *executablePath = _simple_getenv(&apple[1], "executable_path");
-    char *prefixesBlacklist[] = {
-        "/bin",
-        "/usr/bin",
-        "/usr/local/bin",
-        "/var/jb/bin",
-        "/var/jb/usr/bin",
-    };
-    size_t prefixesCount = sizeof(prefixesBlacklist) / sizeof(prefixesBlacklist[0]);
-    for (size_t i = 0; i < prefixesCount; i++) {
-        if (!strncmp(prefixesBlacklist[i], executablePath, strlen(prefixesBlacklist[i]))) {
-            ((char *)insertLibrariesVar)[0] = '\0';
-            return;
-        }
-    }
-    char *suffixesBlacklist[] = {
-        "/procursus/bin",
-        "/procursus/usr/bin",
-        "/sbin/sshd",
-    };
-    size_t suffixesCount = sizeof(suffixesBlacklist) / sizeof(suffixesBlacklist[0]);
-    for (size_t i = 0; i < suffixesCount; i++) {
-        if (strstr(executablePath, suffixesBlacklist[i])) {
-            ((char *)insertLibrariesVar)[0] = '\0';
-            return;
-        }
-    }
-    
-    // Fast path JIT enabling for unsandboxed processes
-    uint32_t csFlags = 0;
-    csops(getpid(), CS_OPS_STATUS, &csFlags, sizeof(csFlags));
-    if (!(csFlags & CS_DEBUGGED)) {
-        int pid = fork();
-        if (pid == 0) {
-            ptrace(PT_TRACE_ME, 0, 0, 0);
-            kill(getpid(), SIGSTOP);
-            return;
-        } else if (pid > 0) {
-            __wait4(pid, NULL, WUNTRACED, NULL);
-            ptrace(PT_DETACH, pid, NULL, 0);
-            kill(pid, SIGKILL);
-        }
-    }
+//    // Exclude CLI tools from systemhook
+//    char **apple = envp;
+//    while (*apple != NULL) { apple++; }
+//    const char *executablePath = _simple_getenv(&apple[1], "executable_path");
+//    char *prefixesBlacklist[] = {
+//        "/bin",
+//        "/usr/bin",
+//        "/usr/local/bin",
+//        "/var/jb/bin",
+//        "/var/jb/usr/bin",
+//    };
+//    size_t prefixesCount = sizeof(prefixesBlacklist) / sizeof(prefixesBlacklist[0]);
+//    for (size_t i = 0; i < prefixesCount; i++) {
+//        if (!strncmp(prefixesBlacklist[i], executablePath, strlen(prefixesBlacklist[i]))) {
+//            ((char *)insertLibrariesVar)[0] = '\0';
+//            return;
+//        }
+//    }
+//    char *suffixesBlacklist[] = {
+//        "/procursus/bin",
+//        "/procursus/usr/bin",
+//        "/sbin/sshd",
+//    };
+//    size_t suffixesCount = sizeof(suffixesBlacklist) / sizeof(suffixesBlacklist[0]);
+//    for (size_t i = 0; i < suffixesCount; i++) {
+//        if (strstr(executablePath, suffixesBlacklist[i])) {
+//            ((char *)insertLibrariesVar)[0] = '\0';
+//            return;
+//        }
+//    }
 #endif
 
 	// If all is well, do check-in right here before dyld_start!
